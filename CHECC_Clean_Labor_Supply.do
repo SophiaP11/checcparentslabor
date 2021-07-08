@@ -28,6 +28,9 @@ To run all the dofile click on the arrow pointing to the right that says "Do". T
 clear all 
 set maxvar 30000 
 
+***** Installs a code package *****
+ssc install nmissing 
+
 *** INSTRUCTIONS ***
 * 1. Save the dataset in a folder in your computer. 
 * 2. Change the path in the command below to the folder in your computer and run it: 
@@ -44,8 +47,11 @@ import delimited "/Users/louisauxenfans/Desktop/Internship/Final_Survey 2_Wave_3
 1. Help from Stata: In the commmand line you can type h or help to get help (example: if you don't understand the command import delimited type h import delimited)
 2. Google: Type how to akdvnvkadjnsva in Stata, google always have good answers. 
 3. Me :
-
 */
+
+*** Will drop variables that have all observations missing ****
+quietly nmissing, min(_N)
+drop `r(varlist)'
 
 
 * Labelling variables
@@ -76,6 +82,7 @@ foreach v of varlist _all {
    rename `v' `x'
 }
 
+
 order responseid, first
 tempfile tempfile1
 save "tempfile1", replace
@@ -103,19 +110,50 @@ foreach v of varlist _all {
 	
 } */
 
+		
+
+/*
+THis is from Lina's code - Just tinkering
 local b=1
 local i=1
-use temporary.dta, clear
-keep if !missing(q`i'_qb`b'_1)
-keep q`i'_qb`b'_* q`i'_qt`b'_*  responseid
+use tempfile1, clear
+keep if !missing(qid`i'`b'1)
+keep qid`i'`b'*  responseid
 reshape long q`i'_qb`b'_, i(responseid) j(questions)
 rename q`i'_qb`b'_ correct 
 rename (q`i'_qt`b'_firstclick q`i'_qt`b'_lastclick q`i'_qt`b'_pagesubmit q`i'_qt`b'_clickcount) (firstclick lastclick pagesubmit clickcount)
+
+gen key="q`i'_qb`b'" 
+		replace addressnum=addressnum+(`b'-1)*5 if `b'>1
+
+		merge m:1 addressnum key using addresses_key.dta, nogen keep(3)
+		sort mturkcode addressnum
+		order key addressnum id_group batch, after(mturkcode)
+
+		tempfile q`i'_qb`b'
+		save `q`i'_qb`b''
+
+		capture append using `temporal'
+		tempfile temporal 
+		save `temporal'
+
+		sort mturkcode addressnum	
+				
+				}
+
+}
+
+		tempfile first 
+		save `first'
 		
 
 
+*/ 
+
 
 *labeling variables
+
+
 /*
 *qid79
 label var qid79 "If parent works for pay now"
