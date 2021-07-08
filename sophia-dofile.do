@@ -25,16 +25,19 @@ slash-star star-slash are to begin and end long comments (with more than one lin
 To run all the dofile click on the arrow pointing to the right that says "Do". To run only one line, highlight the line you want to run and click the arrow. 
 
 */
+clear all 
+
+*Installing necessary packages
 ssc install nmissing
 
 
 *Increase the number of variables that Stata is able to read: 
-clear all 
 set maxvar 30000 
-
+ 
 *create pathway
 gl path "/Users/sophi/desktop/stata"
 cd $path
+
 *** INSTRUCTIONS ***
 
 * 1. Save the dataset in a folder in your computer. 
@@ -54,11 +57,15 @@ cd $path
 3. Me :) */
 
 *---------------------------------------------------------------------------------------------------------------------------------
-*creating list with all variables that have a q at the beginning
-global allvar `r(varlist)'
-di "`allvar'"
+*creating a temp file to manipulate data and test code
+save temp, replace
+use temp, clear
 
-*labeling variables
+*droping empty variables 
+nmissing, min(_all) piasm trim " " /*returns a list of all variables that are missing a minimun of all observations. This also saves this list of variables as r(varlist)*/
+drop `r(varlist)' /*drops all the variables that are missing all observations*/
+
+/*labeling variables
 foreach v of varlist _all {
 	local x: variable label `v' 
 	local y=lower(subinstr("`x'", " ", "", .))
@@ -78,18 +85,14 @@ foreach v of varlist _all {
 }
  
 *merging variables
-merge m:1 qid675_1_* using Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv [assert]
-if assert = true {merge m:1 qid675_1_* using Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv [replace]}
+merge m:1 qid675_1_* using Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv, assert
+if assert = true {merge m:1 qid675_1_* using Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv, replace}
 
-r(varlist)
+r(varlist)*/
 
-save temp, replace
 
-use temp, clear
 
-*droping empty variables
-nmissing, min(635) nogen
-drop `r(varlist)'
+
 
 
 
