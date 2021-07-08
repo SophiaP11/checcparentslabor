@@ -1,6 +1,3 @@
-
-
-
 /* -----------------------------------------------------------------------------
 PROJECT: 
 TOPIC: CLEANING DATASET 
@@ -12,58 +9,41 @@ NOTES:
 
 - Complete the information here. Always comment your code so that it is replicable! 
 
-
+- Useful commands to manipulate and clean the data: 
+	- tab, des, rename, drop, gen, label var, codebook
+	
+- If you are stuck try these resources in order 
+	1. Help from Stata: In the commmand line you can type h or help to get help (example: if you don't understand the command import delimited type h import delimited)
+	2. Google: Type how to akdvnvkadjnsva in Stata, google always have good answers. 
+	3. Me :) 
+	
 ------------------------------------------------------------------------------*/
 
-* The star (*) is for commenting one line of the dofile. 
-
-/* 
-
-/* */ 
-slash-star star-slash are to begin and end long comments (with more than one line like this one)
-
-To run all the dofile click on the arrow pointing to the right that says "Do". To run only one line, highlight the line you want to run and click the arrow. 
-
-*/
+** Basic Setup **
 clear all 
 
-*Installing necessary packages
+* Installing necessary packages:
 ssc install nmissing
 
-
-*Increase the number of variables that Stata is able to read: 
+* Increasing the number of variables that Stata is able to read: 
 set maxvar 30000 
  
-*create pathway
+* creating personal pathway to data file
 gl path "/Users/sophi/desktop/stata"
 cd $path
 
-*** INSTRUCTIONS ***
+* Importing data:
+import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv", bindquote(strict) /*The bindquote(strict) makes sure it doesn't get scrambled in the process.*/  
 
-* 1. Save the dataset in a folder in your computer. 
+** Data cleaning **
 
-*Importing data. The bindquote(strict) makes sure it doesn't get scrambled in the process.
-
- import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv", bindquote(strict)  
- 
-*3.  Useful commands to manipulate and clean the data 
-
-* tab, des, rename, drop, gen, label var, codebook. 
-
-
-/* If you are stuck try these resources in order 
-1. Help from Stata: In the commmand line you can type h or help to get help (example: if you don't understand the command import delimited type h import delimited)
-2. Google: Type how to akdvnvkadjnsva in Stata, google always have good answers. 
-3. Me :) */
-
-*---------------------------------------------------------------------------------------------------------------------------------
 *creating a temp file to manipulate data and test code
 save temp, replace
 use temp, clear
 
-*droping empty variables 
+*droping empty variables
 nmissing, min(_all) piasm trim " " /*returns a list of all variables that are missing a minimun of all observations. This also saves this list of variables as r(varlist)*/
-drop `r(varlist)' /*drops all the variables that are missing all observations*/
+drop `r(varlist)' /*drops all the variables that are missing all observations*/ 
 
 /*labeling variables
 foreach v of varlist _all {
@@ -158,14 +138,12 @@ label var _qid94 "Type of Side job"
 
 *Merge responses under one variable name **I have no idea if this will actually work, but I am just trying to think of possibilities**
 	*create variablelmatrix[]
-		mkmat qid736_1 qid736_2 qid736_3, mat(x)
 	*find each different variable name for [insert qid]
 		*add each variable to variablelist[]
 	*repeat the following until list has only one variable in it
 		*for row i in variablelist[1] check for blank cells
 			foreach i of variablelmatrix x
 			*if cell is blank 
-				if i 
 				*go to row i under variablelist[2]
 				*set "response" = that cell
 			*go back to blank cell
