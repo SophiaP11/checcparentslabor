@@ -33,6 +33,7 @@ gl path "/Users/sophi/desktop/stata"
 cd $path
 
 * Importing data:
+<<<<<<< Updated upstream
 import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv", bindquote(strict) /*The bindquote(strict) makes sure it doesn't get scrambled in the process.*/  
 
 ** Data cleaning **
@@ -44,8 +45,35 @@ use temp, clear
 *droping empty variables
 nmissing, min(_all) piasm trim " " /*returns a list of all variables that are missing a minimun of all observations. This also saves this list of variables as r(varlist)*/
 drop `r(varlist)' /*drops all the variables that are missing all observations*/ 
+=======
+import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv", bindquote(strict) //The bindquote(strict) makes sure it doesn't get scrambled in the process.
 
-/*labeling variables
+** Data cleaning **
+
+*creating a temp file to manipulate data and test code
+save temp, replace
+use temp, clear
+
+*droping empty variables
+nmissing, min(_all) piasm trim " " // returns a list of all variables that are missing a minimun of all observations. This also saves this list of variables as r(varlist)
+drop `r(varlist)' // drops all the variables that are missing all observations
+
+*getting rid of the starting _ from variables
+rename _* *
+
+*renaming variables that start with v as their label
+local vnames "v*" // assigning all variables that start with a v to the variable list call vnames
+foreach v of varlist `vnames' { //going through each variable in vnames
+	local x: variable label `v' //assigning the variable's label to the variable x
+	local y= strlower("`x'") //assigning the lowercase version of the label to the variable y
+rename `v' q`y' //renaming the variable to the lowercase label with a q in front
+}
+
+/*---------*  Experimenting  *---------*
+
+>>>>>>> Stashed changes
+
+*labeling variables
 foreach v of varlist _all {
 	local x: variable label `v' 
 	local y=lower(subinstr("`x'", " ", "", .))
@@ -68,32 +96,9 @@ foreach v of varlist _all {
 merge m:1 qid675_1_* using Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv, assert
 if assert = true {merge m:1 qid675_1_* using Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv, replace}
 
-r(varlist)*/
+r(varlist)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
 *qid79
 label var qid79 "If parent works for pay now"
 *qid80
@@ -152,5 +157,4 @@ label var _qid94 "Type of Side job"
 	*rename variablelist[1] to [insert qid]
 	*erase variablelist
 	*start over
-*/
 	
