@@ -29,23 +29,17 @@ ssc install nmissing
 set maxvar 30000 
  
 * creating personal pathway to data file
-gl path "/Users/sophi/desktop/stata"
+*gl path "/Users/sophi/desktop/stata"
+if "`c(username)'"=="sophi" {
+	gl path "/Users/sophi/desktop/stata"
+}
+else if "`c(username)'"=="jonathanlambrinos" {
+	gl path "/Users/jonathanlambrinos/Desktop/CHECC_parentslabor_cleaning"
+}
+
 cd $path
 
 * Importing data:
-<<<<<<< Updated upstream
-import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv", bindquote(strict) /*The bindquote(strict) makes sure it doesn't get scrambled in the process.*/  
-
-** Data cleaning **
-
-*creating a temp file to manipulate data and test code
-save temp, replace
-use temp, clear
-
-*droping empty variables
-nmissing, min(_all) piasm trim " " /*returns a list of all variables that are missing a minimun of all observations. This also saves this list of variables as r(varlist)*/
-drop `r(varlist)' /*drops all the variables that are missing all observations*/ 
-=======
 import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv", bindquote(strict) //The bindquote(strict) makes sure it doesn't get scrambled in the process.
 
 ** Data cleaning **
@@ -56,24 +50,65 @@ use temp, clear
 
 *droping empty variables
 nmissing, min(_all) piasm trim " " // returns a list of all variables that are missing a minimun of all observations. This also saves this list of variables as r(varlist)
-drop `r(varlist)' // drops all the variables that are missing all observations
+drop `r(varlist)' // dropping all the variables that are missing all observations
 
-*getting rid of the starting _ from variables
+*getting rid of the starting _ from variable names
 rename _* *
 
 *renaming variables that start with v as their label
-local vnames "v*" // assigning all variables that start with a v to the variable list call vnames
+local vnames "v*" // assigning all variables that start with a v to the variable list called vnames
 foreach v of varlist `vnames' { //going through each variable in vnames
 	local x: variable label `v' //assigning the variable's label to the variable x
 	local y= strlower("`x'") //assigning the lowercase version of the label to the variable y
 rename `v' q`y' //renaming the variable to the lowercase label with a q in front
 }
 
-/*---------*  Experimenting  *---------*
 
->>>>>>> Stashed changes
+*generating key for potential merging
+numlist "1/635", ascending
+egen uniqueid = fill(`r(numlist)')
+order uniqueid, first
 
-*labeling variables
+save temp, replace //saving changes
+
+*---------*  Experimenting  *---------*
+
+use temp, clear
+
+*fixing qid671
+quietly keep uniqueid qid671*
+quietly tostring (qid671*), replace
+quietly reshape long qid671, i(uniqueid) j(job_entry) string 
+
+drop if missing(qid671) | qid671 == "."
+*destring job_entry , replace ignore("_")
+
+local vars "employment_type start_month end_month title status start_year end_year"
+*replace test = word("`vars'", 2)
+
+
+*gen something = real(substr(job_entry, -1, .))
+*replace temp = word("`vars'", 1)
+
+replace TESTING_MAIN = "job " + substr(job_entry, 2, length(job_entry)-3) + " " + word("`vars'", real(substr(job_entry, -1, .)))
+
+
+
+/*
+label define job 1 "employment type" 2 "start month" 3 "end month" 4 "title" 5 "status" 6 "start year" 7 "end year"
+
+egen jobaspect = ends(job_entry), punct(_) last
+
+split(job_entry), generate(jobaspect) destring ignore("_")  
+*/
+
+
+forvalues i=1/12{
+	label define job`i' `i'1 "job`i' employment type" `i'2 "job`i' start month" `i'3 "job `i' end month" `i'4 "job`i' title" `i'5 "job`i' status" `i'6 "job`i' start year" `i'7 "job`i' end year"
+	label values job_entry job`i'
+} //need to fix numbers so syntax works...
+
+/*labeling variables
 foreach v of varlist _all {
 	local x: variable label `v' 
 	local y=lower(subinstr("`x'", " ", "", .))
