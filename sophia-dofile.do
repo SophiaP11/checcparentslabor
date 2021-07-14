@@ -50,11 +50,11 @@ rename `v' q`y' //renaming the variable to the lowercase label with a q in front
 }
 
 *generating key for potential merging
-numlist "1/635", ascending
-egen uniqueid = fill(`r(numlist)')
-order uniqueid, first
+numlist "1/635", ascending //generating numbers to match to each observation
+egen uniqueid = fill(`r(numlist)') //creating new variable with unique numbering for each observation
+order uniqueid, first //moving variable to the start of the dataset for enhanced visability
 
-save temp, replace //saving changes
+save temp, replace //saving cleaning changes to allow for experimenting
 
 *---------*  Experimenting  *---------*
 
