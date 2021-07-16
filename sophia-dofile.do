@@ -6,7 +6,7 @@ DATE CREATED: 30/06/2021
 LAST MODIFIED: 14/07/2021 
 
 NOTES: 
-
+need month_key.csv file for experimenting section
 ------------------------------------------------------------------------------*/
 
 *--------* Basic Setup *-------*
@@ -26,8 +26,11 @@ else if "`c(username)'"=="jonathanlambrinos" {
 cd $path
 
 *Importing data
-import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv", bindquote(strict) //The bindquote(strict) makes sure it doesn't get scrambled in the process.
-
+import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv", bindquote(strict) maxquotedrows(50000) varnames(1) clear
+ 
+if "`c(username)'"=="jonathanlambrinos" {
+	drop if inlist(_n, 1, 2)
+}
 *-------* Data cleaning *-------*
 
 *creating a temp file to manipulate data and test code
@@ -57,19 +60,120 @@ order uniqueid, first //moving variable to the start of the dataset for enhanced
 save temp, replace //saving cleaning changes to allow for experimenting
 
 *---------*  Experimenting  *---------*
-
+/*NOTES:
+qid681 double_child1 missingf1name1 missingf1email1 missingf1phone1 test could possibly be dropped
+*/
 use temp, clear
 
-*****fixing qid671*****
+****fixing qid671***********************************
+use temp, clear
 quietly keep uniqueid qid671* // dropping all other questions
 quietly tostring (qid671*), replace // turning all variables to strings so I can reshape without different type errors
 quietly reshape long qid671, i(uniqueid) j(job_entry) string //reshaping the data to extract the different parts of qid671 and rename properly
 quietly drop if missing(qid671) | qid671 == "." //getting rid of missing values in data 
 local vars "employment_type start_month end_month title status start_year end_year" //creating correct names for numbers in data
 replace job_entry = "job " + substr(job_entry, 2, length(job_entry)-3) + " " + word("`vars'", real(substr(job_entry, -1, .))) //assigning more specific naming to values
-***********************
+****************************************************
 
-*use temp, clear
+****combining date variables into mm/yyyy format****
+/*Notes: column values 1994 and 2010 for qid671_1_2 need to swap with qid671_1_6 column values
+*/
+use temp, clear
+
+quietly keep uniqueid qid671_1_2 qid671_1_6 //dropping all other questions
+gen month = strlower(substr(qid671_1_2,1,3)) //creating new variable with just first 3 characters of response to qid671_1_2
+
+replace month = usubinstr(month, "0", "", 1) if month != "10"
+
+local month_code = "jan feb mar apr may jun jul aug sep oct nov dec"
+local n : word count `month_code'
+
+* replace month with empty if input is invalid
+* replace 1-12 with month values
+gen temp = ""
+forvalues i = 1/`n' {
+	local a : word `i' of `month_code'
+	replace month = "`a'" if month == "`i'"
+	replace temp = "`a'" if month == "`a'"
+}
+replace month = temp
+drop temp
+
+
+
+
+/*replacing month values with month names in responses*
+replace month = "jan" if month == "1"
+replace month = "feb" if month == "2"
+replace month = "mar" if month == "3"
+replace month = "apr" if month == "4"
+replace month = "may" if month == "5"
+replace month = "jun" if month == "6"
+replace month = "jul" if month == "7"
+replace month = "aug" if month == "8" 
+replace month = "sep" if month == "9"
+replace month = "oct" if month == "10"
+replace month = "nov" if month == "11"
+replace month = "dec" if month == "12"
+
+*replacing errors in responses to blank observations*
+replace month = "" if month == "?"| month == "199" | month == "201"| month == "idk"| month == "n/a"| month == "not"| month == "doe"| month == "don"| month == "unk"| month == "x"| month == "can"
+
+*numlist 1/12
+*egen numbers = month if 
+
+*| month == "15-" (response is 15-march so replace with mar)
+
+*local mon "jan feb mar apr may jun jul aug sep oct nov dec"
+*replace month = "" if !inlist(month, "`mon'")
+
+
+*label define mkey 1 "jan" 2 "feb" 3 "mar" 4 "apr" 5 "may" 6 "jun" 7 "jul" 8 "aug" 9 "sep" 10 "oct" 11 "nov" 12 "dec"
+*label values month
+
+
+*month != "feb" | month != "mar"| month != "apr" | month != "may" | month != "jun" | month != "jul" | month != "aug" | month != "sep" | month != "oct" |  month != "nov" | month != "dec"
+
+/*tostring(month), replace
+save temp2, replace
+
+import delimited "$path/month_key.csv", clear
+save mkey, replace
+use temp2, clear
+merge m:1 month using mkey
+drop _merge*/
+
+****************************************************/
+
+****fixing q1232***********************************
+/*NOTES:
+_1 = School Name _10 = School District _11 = School City 
+_14 probably = same as previous grade
+_15 probably = don't know
+_14 and _15 meanings could be swapped
+*/
+use temp, clear
+keep uniqueid q1232*
+ds has(q1232)
+drop if missing(`r(varlist)')
+quietly reshape long q1232, i(uniqueid) j(grade_school) string //reshaping the data to extract the different parts of qid671 and rename properly
+drop if missing(q1232) //getting rid of missing values in data 
+ q1232 == "X" | q1232 == "x"
+ reshape wide
+****************************************************
+
+***getting rid of general idk type of responses*****
+use temp, clear
+
+quietly ds , has(type string)
+foreach var in `r(varlist)' {
+replace `var' = "" if `var'== "Don't know" | `var' == "don't know" | `var' == "prefer not to answer" | `var' == "Prefer not to answer" | `var' == "don't remember" | `var' == "n/a" | `var' == "no comments" | `var' == "doesn't know" | `var' == "not sure" | `var' == "dont know" | `var' == "unsure" | `var' == "Doesn't know" | `var' == "doesn't know" | `var' == "can't remember" | `var' ==  "does not want to answer" | `var' == "don't want to answer" | `var' == "N/A"
+}
+
+quietly nmissing, min(_all) piasm trim " " // returns a list of all variables that are missing a minimun of all observations. This also saves this list of variables as r(varlist)
+quietly drop `r(varlist)'
+****************************************************
+
 
 /*labeling variables
 foreach v of varlist _all {
