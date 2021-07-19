@@ -27,7 +27,7 @@ else if "`c(username)'"=="jonathanlambrinos" {
 	gl path "/Users/jonathanlambrinos/Desktop/CHECC_parentslabor_cleaning"
 }
 
-*cd $path - Do not need if Louis
+cd $path //Do not need if Louis
 
 *Importing data
 import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv", bindquote(strict) maxquotedrows(50000) varnames(1) clear
