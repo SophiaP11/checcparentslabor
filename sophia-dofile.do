@@ -3,13 +3,13 @@ PROJECT: CHECC Parents Labor Supply
 TOPIC: CLEANING DATASET 
 AUTHOR: Sophia
 DATE CREATED: 30/06/2021
-LAST MODIFIED: 16/07/2021 
+LAST MODIFIED: 18/07/2021 
 
 NOTES: 
 need month_key.csv file for experimenting section
 ------------------------------------------------------------------------------*/
 
-*--------* Basic Setup *-------*
+*--------* BASIC SETUP *-------*
 
 clear all 
 ssc install nmissing 
@@ -31,7 +31,7 @@ import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_1
 if "`c(username)'"=="jonathanlambrinos" {
 	drop if inlist(_n, 1, 2)
 }
-*-------* Data cleaning *-------*
+*-------* DATA CLEANING *-------*
 
 *creating a temp file to manipulate data and test code
 save temp, replace
@@ -59,7 +59,7 @@ order uniqueid, first
 
 save temp, replace 
 
-*---------*  Experimenting  *---------*
+*---------*  EXPERIMENTING  *---------*
 /*NOTES:
 qid681 double_child1 missingf1name1 missingf1email1 missingf1phone1 test could possibly be dropped
 */
@@ -148,7 +148,31 @@ quietly nmissing, min(_all) piasm trim " "
 quietly drop `r(varlist)'
 ****************************************************
 
-/*qid79
+/******LIST OF QUESTIONS THAT NEED CLEANING*****
+
+MONEY/HOURS VALUES:
+	qid1535_1 qid85_1 qid736_1 qid1560_1 qid737_1 qid96_1
+
+DATES:
+	***number of months/years* 
+		q875_1 q875_5 qid87_1 qid87_2  
+	***start-end month/year* 
+		qid736_2 qid736_3 
+	***mm/yyyy
+		q1738_1 q1738_2 q1740_1 q1740_2 q1742_1 tab q1742_2
+
+FREE RESPONSE:
+
+OTHER:
+	qid92 (if missing check if qid91 =="no", if so change to 0)
+	q1736 depends on q1735 and q886 (q1736* are dates)
+***CHECKED QUESTIONS UP TO AND INCLUDING q1743
+	**only checked questions with more than one obs. (569 variables)
+ 
+****************************************************/
+
+/*not sure if it is worth doing this below:
+*qid79
 label var qid79 "If parent works for pay now"
 *qid80
 label var qid80 "If parent ever worked"
@@ -189,5 +213,3 @@ label var qid91 "Have Side job(s)"
 label var qid92 "Number of side jobs"
 *qid94
 label var _qid94 "Type of Side job"
-
-	
