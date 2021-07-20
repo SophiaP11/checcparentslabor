@@ -27,7 +27,8 @@ else if "`c(username)'"=="jonathanlambrinos" {
 	gl path "/Users/jonathanlambrinos/Desktop/CHECC_parentslabor_cleaning"
 }
 
-*cd $path //Do not need if Louis
+*cd $path 
+//Do not need if Louis
 
 *Importing data
 import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv", bindquote(strict) maxquotedrows(50000) varnames(1) clear
@@ -44,6 +45,8 @@ use temp, clear
 *droping empty variables
 quietly nmissing, min(_all) piasm trim " " // finding variables missing all obs
 quietly drop `r(varlist)' // dropping them
+drop if _n == 63 // 63rd observation had to reshedule interview so no data
+drop if progress <= 2 // Some people completed negligble parts of the survey
 
 *getting rid of starting _ from variable names
 rename _* *
@@ -119,6 +122,13 @@ save mkey, replace
 use temp2, clear
 merge m:1 month using mkey
 drop _merge
+
++***Cleaning qid736_2 and qid736_3 ***STILL WORKING ON IT*********/
+
+use temp, clear
+quietly keep uniqueid qid736_2 qid736_3
+
+gen month = strlower(substr(qid736_2,1,3))
 
 ****************************************************/
 
