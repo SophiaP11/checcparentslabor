@@ -3,7 +3,7 @@ PROJECT: CHECC Parents Labor Supply
 TOPIC: CLEANING DATASET 
 AUTHOR: Sophia
 DATE CREATED: 30/06/2021
-LAST MODIFIED: 18/07/2021 
+LAST MODIFIED: 19/07/2021 
 
 NOTES: 
 need month_key.csv file for experimenting section
@@ -22,12 +22,11 @@ if "`c(username)'"=="sophi" {
 else if "`c(username)'"=="louisauxenfans" {
 	gl path "/Users/louisauxenfans/Desktop/Internship/Cleaning CHECC Labor_Supply"
 }
-
 else if "`c(username)'"=="jonathanlambrinos" {
 	gl path "/Users/jonathanlambrinos/Desktop/CHECC_parentslabor_cleaning"
 }
 
-cd $path //Do not need if Louis
+cd $path
 
 *Importing data
 import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv", bindquote(strict) maxquotedrows(50000) varnames(1) clear
@@ -77,36 +76,75 @@ quietly tostring (qid671*), replace
 quietly reshape long qid671, i(uniqueid) j(job_entry) string 
 quietly drop if missing(qid671) | qid671 == "." 
 
-*assigning more specific naming to _numbers
+*assigning more specific naming to variables
 local vars "employment_type start_month end_month title status start_year end_year" 
-replace job_entry = "job " + substr(job_entry, 2, length(job_entry)-3) + " " + word("`vars'", real(substr(job_entry, -1, .))) 
-****************************************************
+replace job_entry = "_job_" + substr(job_entry, 2, length(job_entry)-3) + "_" + word("`vars'", real(substr(job_entry, -1, .))) 
+reshape wide
+*need to merge changes with main dataset
 
-****combining date variables into mm/yyyy format****
+
+****fixing date variables****
 /*Notes: 
 -column values 1994 and 2010 for qid671_1_2 need to swap with qid671_1_6 column values
--column value 15-march needs to just say mar
 */
-use temp, clear
-quietly keep uniqueid qid671_1_2 qid671_1_6 
+use temp, clear 
+quietly keep uniqueid qid671_*_2 qid671_*_6 qid671_*_3 qid671_*_7
 
-gen month = strlower(substr(qid671_1_2,1,3)) //creating new variable with just first 3 characters of response to qid671_1_2
+*fixing specific errors
+replace qid671_1_2 = "sept" if qid671_1_2 == "setp" //assuming misspelling
+replace qid671_1_2 = "aug" if qid671_1_2 == "15-Aug" //column value 15-aug needs to just say aug
+replace qid671_1_3 = "may" if qid671_1_3 == "19-May"
+replace qid671_1_3 = "present" if qid671_1_3 == "stlll working"
 
-replace month = usubinstr(month, "0", "", 1) if month != "10"
-
-local month_code = "jan feb mar apr may jun jul aug sep oct nov dec"
-local n : word count `month_code'
-
-* replace month with empty if input is invalid
-* replace 1-12 with month values
-gen temp = ""
-forvalues i = 1/`n' {
-	local a : word `i' of `month_code'
-	replace month = "`a'" if month == "`i'"
-	replace temp = "`a'" if month == "`a'"
+*making all "present" type responses the same
+forvalues j = 1/12 {
+	quietly tostring qid671_`j'_3 , replace
+	replace qid671_`j'_3 = strlower(qid671_`j'_3)
+	tab qid671_`j'_3
+	replace qid671_`j'_3 = "present" if strpos(qid671_`j'_3, "current") != 0 | strpos(qid671_`j'_3, "still") != 0 | strpos(qid671_`j'_3, "present") != 0
+	tab qid671_`j'_3
 }
-replace month = temp
-drop temp
+
+
+
+
+forvalues j = 1/12 {
+
+	}
+
+*fixing month year entry swaps 
+forvalues j = 1/12 {
+	quietly tostring qid671_`j'_6 , replace
+	quietly replace qid671_`j'_6 = "" if qid671_`j'_6 == "."
+	quietly gen tempq = qid671_`j'_2 if strlen(qid671_`j'_2) == 4 & missing(real(qid671_`j'_2)) == 0 
+	quietly replace qid671_`j'_2 = qid671_`j'_6 if strlen(qid671_`j'_2) == 4 & missing(real(qid671_`j'_2)) == 0 
+	quietly replace qid671_`j'_6 = tempq if missing(tempq) == 0
+	drop tempq
+}
+
+*making all month entries in same format
+forvalues j = 1/12 {
+	quietly gen month = strlower(substr(qid671_`j'_2,1,3)) //creating new variable with just first 3 characters of response to qid671_1_2
+
+	quietly replace month = usubinstr(month, "0", "", 1) if month != "10" | month != "11"| month != "12"
+
+	local month_code = "jan feb mar apr may jun jul aug sep oct nov dec"
+	local n : word count `month_code'
+
+	* replace month with empty if input is invalid
+	* replace 1-12 with month values
+	quietly gen tempq = ""
+	forvalues i = 1/`n' {
+		local a : word `i' of `month_code'
+		quietly replace month = "`a'" if month == "`i'"
+		quietly replace tempq = "`a'" if month == "`a'"
+	}
+	quietly replace month = tempq
+	quietly replace qid671_`j'_2 = month
+	drop tempq month
+	
+	quietly replace qid671_`j'_6 = "" if strlen(qid671_`j'_6) != 4 | missing(real(qid671_`j'_6)) == 1 //getting rid of responses that aren't years
+}
 
 /*replacing errors in responses to blank observations*
 replace month = "" if month == "?"| month == "199" | month == "201"| month == "idk"| month == "n/a"| month == "not"| month == "doe"| month == "don"| month == "unk"| month == "x"| month == "can"
@@ -150,22 +188,21 @@ replace `var' = "" if `var'== "Don't know" | `var' == "don't know" | `var' == "p
 
 quietly nmissing, min(_all) piasm trim " "
 quietly drop `r(varlist)'
-
-
 ****************************************************
 
 /******LIST OF QUESTIONS THAT NEED CLEANING*****
+use temp, clear
 
 MONEY/HOURS VALUES:
 	qid1535_1 qid85_1 qid736_1 qid1560_1 qid737_1 qid96_1
 
 DATES:
 	***number of months/years* 
-		q875_1 q875_5 qid87_1 qid87_2  
+keep uniqueid q875_1 q875_5 qid87_1 qid87_2  
 	***start-end month/year* 
 		qid736_2 qid736_3 
-	***mm/yyyy
-		q1738_1 q1738_2 q1740_1 q1740_2 q1742_1 tab q1742_2
+	***dd/mm
+keep uniqueid q1738_1 q1738_2 q1740_1 q1740_2 q1742_1 q1742_2
 
 FREE RESPONSE:
 
