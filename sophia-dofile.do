@@ -6,10 +6,12 @@ DATE CREATED: 30/06/2021
 LAST MODIFIED: 19/07/2021 
 
 NOTES: 
-need month_key.csv file for experimenting section
+
 ------------------------------------------------------------------------------*/
 
-*--------* BASIC SETUP *-------*
+/*----------------------------------------------------------------------------*/
+						*--------* BASIC SETUP *-------*
+/*----------------------------------------------------------------------------*/
 
 clear all 
 ssc install nmissing 
@@ -34,7 +36,10 @@ import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_1
 if "`c(username)'"=="jonathanlambrinos" {
 	drop if inlist(_n, 1, 2)
 }
-*-------* DATA CLEANING *-------*
+
+/*----------------------------------------------------------------------------*/
+						*-------* DATA CLEANING *-------*
+/*----------------------------------------------------------------------------*/
 
 *creating a temp file to manipulate data and test code
 save temp, replace
@@ -62,15 +67,31 @@ order uniqueid, first
 
 save temp, replace 
 
-*---------*  EXPERIMENTING  *---------*
+/*----------------------------------------------------------------------------*/
+					*---------*  EXPERIMENTING  *---------*
+/*----------------------------------------------------------------------------*/
+
 /*NOTES:
-qid681 double_child1 missingf1name1 missingf1email1 missingf1phone1 test could possibly be dropped
+could possibly drop qid681 double_child1 missingf1name1 missingf1email1 missingf1phone1 test 
 */
 use temp, clear
 
-****cleaning qid671***********************************
+/*-------------------------------------------------*/
+* qid671 - standardize free responses and dates
+/*-------------------------------------------------*/
 /*use temp, clear
 quietly keep uniqueid qid671*
+drop uniqueid qid671_*_2 qid671_*_6 qid671_*_3 qid671_*_7 
+
+*qid671_*_4
+
+qid671_*_5 qid671_*_1
+
+*need cleaning
+forvalues i = 1/12 {
+ tab qid671_`i'_5
+ tab qid671_`i'_1
+}
 
 quietly tostring (qid671*), replace 
 quietly reshape long qid671, i(uniqueid) j(job_entry) string 
@@ -83,7 +104,7 @@ reshape wide
 *need to merge changes with main dataset */
 
 
-****fixing date variables****
+*-------*fixing date*-----*
 /*Notes: 
 -x or y options were rounded down
 -for range of months chose average, rounded down
@@ -112,7 +133,6 @@ replace qid671_2_7 = "2020" if qid671_2_3 == "to 2020"
 replace qid671_3_2 = "oct" if strlower(qid671_3_2) == "fall"
 replace qid671_3_2 = "jul" if strlower(qid671_3_2) == "summer"
 replace qid671_3_2 = "jan" if strlower(qid671_3_2) == "january or february"
-
 replace qid671_3_3 = "jan" if strlower(qid671_3_3) == "january-february"
 replace qid671_3_3 = "may" if strlower(qid671_3_3) == "15-may" | strlower(qid671_3_3) == "may or june"
 replace qid671_3_3 = "may" if qid671_3_3 == "graduating in spring" //specific case (general rule not applied) because most graduations take place in may
@@ -195,7 +215,6 @@ forvalues j = 1/12 {
 	tab qid671_`j'_7
 	}
 */
-
 ****************************************************/
 
 ****cleaning q1232***********************************
@@ -207,13 +226,7 @@ _14 and _15 meanings could be swapped
 */
 use temp, clear
 keep uniqueid q1232*
-*ds has(q1232)
-*drop if missing(`r(varlist)')
-quietly reshape long q1232, i(uniqueid) j(grade_school) string 
 
-drop if missing(q1232)
-*q1232 == "X" | q1232 == "x"
-*reshape wide
 ****************************************************
 
 /*----------------------------------------------------------------*/
@@ -229,23 +242,27 @@ drop child_birthday
 rename birthday child_birthday
 /*----------------------------------------------------------------*/
 
+*****qid96*****
+rename q2_qid96_1 qid96_2 //clean already
+***************
 
 /******LIST OF QUESTIONS THAT NEED CLEANING*****
 use temp, clear
 
 MONEY/HOURS VALUES:
-	qid1535_1 qid85_1 qid736_1 qid1560_1 qid737_1 qid96_1
+	qid1535_1 qid85_1 qid736_1 qid1560_1 qid737_1 qid96_1 q2_qid96_1 qid737_1
 
 DATES:
 	***number of months/years* 
-keep uniqueid q875_1 q875_5 qid87_1 qid87_2  
+keep uniqueid q875_1 q875_5 qid87_1 qid87_2 qid97_1 qid97_2 q2_qid97_2
 	***start-end month/year* 
 		qid736_2 qid736_3 
 	***dd/mm
 keep uniqueid q1738_1 q1738_2 q1740_1 q1740_2 q1742_1 q1742_2
 
 FREE RESPONSE:
-
+	qid671_*_5 qid671_*_1
+	
 OTHER:
 	qid92 (if missing check if qid91 =="no", if so change to 0)
 	q1736 depends on q1735 and q886 (q1736* are dates)
