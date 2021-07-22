@@ -286,7 +286,15 @@ OTHER:
 use temp, clear
 quietly keep uniqueid qid736_2 qid736_3
 
+// Format for method of seperating out month and year
+
 gen month = strlower(substr(qid736_2,1,3))
+gen year = substr(qid736_2,-4,.)
+gen m/y = month + "/" + year
+
+// Other method of directly replacing month and year
+gen qid736_new = strlower(substr(qid736_2,1,3)) + substr(qid736_2, -4,.) 
+** In the end would just replace qid736 directly
 
 ****************************************************/
 
