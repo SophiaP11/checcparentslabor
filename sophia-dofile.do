@@ -3,7 +3,7 @@ PROJECT: CHECC Parents Labor Supply
 TOPIC: CLEANING DATASET 
 AUTHOR: Sophia
 DATE CREATED: 30/06/2021
-LAST MODIFIED: 19/07/2021 
+LAST MODIFIED: 21/07/2021 
 
 NOTES: 
 
@@ -17,7 +17,7 @@ clear all
 ssc install nmissing 
 set maxvar 30000 
 
-*creating personal pathway to data file
+* creating personal pathway to data file
 if "`c(username)'"=="sophi" {
 	gl path "/Users/sophi/desktop/stata"
 }
@@ -30,7 +30,7 @@ else if "`c(username)'"=="jonathanlambrinos" {
 
 cd $path
 
-*Importing data
+* Importing data
 import delimited "$path/Final_Survey 2_Wave_3_Single_or_Multiple_June 30, 2021_12.52.csv", bindquote(strict) maxquotedrows(50000) varnames(1) clear
  
 if "`c(username)'"=="jonathanlambrinos" {
@@ -41,18 +41,21 @@ if "`c(username)'"=="jonathanlambrinos" {
 						*-------* DATA CLEANING *-------*
 /*----------------------------------------------------------------------------*/
 
-*creating a temp file to manipulate data and test code
+* creating a temp file to manipulate data and test code
 save temp, replace
 use temp, clear
 
-*droping empty variables
-quietly nmissing, min(_all) piasm trim " " // finding variables missing all obs
-quietly drop `r(varlist)' // dropping them
+* dropping incomplete surveys
+drop if progress != 100
 
-*getting rid of starting _ from variable names
+* droping empty variables
+quietly nmissing, min(_all) piasm trim " "
+quietly drop `r(varlist)'
+
+* getting rid of starting _ from variable names
 rename _* *
 
-*renaming variables that start with v as their label
+* renaming variables that start with v as their label (which contains qid)
 local vnames "v*" 
 foreach v of varlist `vnames' { 
 	local x: variable label `v' 
@@ -60,8 +63,9 @@ foreach v of varlist `vnames' {
 rename `v' q`y' //renaming v variables to the lowercase label with a q in front
 }
 
-*generating key for potential merging
-numlist "1/635", ascending 
+* generating key for potential merging
+local obs = _N
+numlist "1/`obs'", ascending 
 egen uniqueid = fill(`r(numlist)') //creating unique numbering for each observation
 order uniqueid, first 
 
@@ -72,25 +76,39 @@ save temp, replace
 /*----------------------------------------------------------------------------*/
 
 /*NOTES:
-could possibly drop qid681 double_child1 missingf1name1 missingf1email1 missingf1phone1 test 
+could possibly drop qid673 qid681 double_child1 missingf1name1 missingf1email1 missingf1phone1 test 
 */
 use temp, clear
 
 /*-------------------------------------------------*/
 * qid671 - standardize free responses and dates
 /*-------------------------------------------------*/
-/*use temp, clear
+use temp, clear
 quietly keep uniqueid qid671*
-drop uniqueid qid671_*_2 qid671_*_6 qid671_*_3 qid671_*_7 
+drop qid671_*_2 qid671_*_6 qid671_*_3 qid671_*_7 qid671_*_4
 
-*qid671_*_4
+*---* fixing qid671_*_1 *---*
+gen qid671_12_1 = ""
 
-qid671_*_5 qid671_*_1
-
-*need cleaning
+* making all responses either part time, full time, or blank
 forvalues i = 1/12 {
- tab qid671_`i'_5
- tab qid671_`i'_1
+	quietly replace qid671_`i'_1 = "full time" if strpos(strlower(qid671_`i'_1), "full") != 0
+	quietly replace qid671_`i'_1 = "part time" if strpos(strlower(qid671_`i'_1), "part") != 0
+	quietly replace qid671_`i'_1 = "" if qid671_`i'_1 != "part time" & qid671_`i'_1 != "full time"
+}
+
+*---* fixing qid671_`i'_5 *---*
+
+* making all responses either unemployed, working, student or blank
+forvalues i = 1/12 {
+	replace qid671_`i'_5 = "unemployed" if strpos(strlower(qid671_`i'_5), "unemploy") != 0 | strpos(strlower(qid671_`i'_5), "leave") != 0 | strpos(strlower(qid671_`i'_5), "home") != 0 | strpos(strlower(qid671_`i'_5), "not work") !=0 | strpos(strlower(qid671_`i'_5), "disabled") !=0 | inlist(strtrim(strlower(qid671_`i'_5)), "furloughed", "retired", "on workman's comp due to injury", "notworking", "umemployed", "uneployed") 
+	
+	replace qid671_`i'_5 = "working" if strpos(strlower(qid671_`i'_5), "work") != 0 | strpos(strlower(qid671_`i'_5), "intern") != 0 | strpos(strlower(qid671_`i'_5), "self employ") != 0 | inlist(strtrim(strlower(qid671_`i'_5)), "first student bus company", "dsp/progressive housing", "restoration", "fifth third bank", "fitness trainer", "customer service", "car warehouse", "teacher", "radio shack") | inlist(strtrim(strlower(qid671_`i'_5)), "real estate", "data analyst/scientist", "employed", "military", "woking")
+	
+	replace qid671_`i'_5 = "student" if strpos(strlower(qid671_`i'_5), "student") != 0 | strpos(strlower(qid671_`i'_5), "school") != 0
+	
+	replace qid671_`i'_5 = "" if !inlist(qid671_`i'_5, "student", "working", "unemployed")
+	tab qid671_`i'_5
 }
 
 quietly tostring (qid671*), replace 
@@ -104,60 +122,65 @@ reshape wide
 *need to merge changes with main dataset */
 
 
-*-------*fixing date*-----*
+*-------*fixing date columns: qid671_*_2 qid671_*_6 qid671_*_3 qid671_*_7*-----*
 /*Notes: 
 -x or y options were rounded down
 -for range of months chose average, rounded down
 -seasons were transfered to a month range based on meteorological seasons {spring: mar-may summer: jun-aug fall: sep-nov winter: dec-feb} and then the above rule applied so spring=apr summer=jul fall=oct winter=jan
+--graduating in spring is specific case (general rule not applied) because most graduations take place in may
+-"until the pandemic" == mar 2020 because "During March 2020, national, state, and local public health responses also intensified and adapted, augmenting case detection, contact tracing, and quarantine with targeted layered community mitigation measures." https://www.cdc.gov/mmwr/volumes/69/wr/mm6918e2.htm
 */
 use temp, clear 
 quietly keep uniqueid qid671_*_2 qid671_*_6 qid671_*_3 qid671_*_7
 
 * fixing specific errors
-replace qid671_1_2 = "aug" if qid671_1_2 == "15-Aug"
-replace qid671_1_3 = "may" if qid671_1_3 == "19-May"
-replace qid671_1_3 = "present" if qid671_1_3 == "stlll working"
-replace qid671_1_3 = "feb" if strlower(qid671_1_3) == "february or march"
-replace qid671_1_6 = "2010" if qid671_1_6 == "prior to 2010"
-replace qid671_1_6 = "sep" if qid671_1_6 == "setp" 
-replace qid671_1_7 = "2021" if qid671_1_7 == "2121"
-replace qid671_2_2 = "jun" if qid671_2_2 == "jume"
-replace qid671_2_2 = "feb" if strlower(qid671_2_2) == "december-april"
-replace qid671_2_3 = "feb" if strlower(qid671_2_3) == "december-april"
-replace qid671_2_3 = "jan" if strlower(qid671_2_3) == "january or february"
-replace qid671_2_6 = "2005" if qid671_2_6 == "2105"
-replace qid671_2_6 = "2008" if qid671_2_6 == "2108"
-replace qid671_2_7 = "2013" if qid671_2_7 == "20113"
-replace qid671_2_7 = "2017" if qid671_2_7 == "2017 or 2018"
-replace qid671_2_7 = "2020" if qid671_2_3 == "to 2020"
-replace qid671_3_2 = "oct" if strlower(qid671_3_2) == "fall"
-replace qid671_3_2 = "jul" if strlower(qid671_3_2) == "summer"
-replace qid671_3_2 = "jan" if strlower(qid671_3_2) == "january or february"
-replace qid671_3_3 = "jan" if strlower(qid671_3_3) == "january-february"
-replace qid671_3_3 = "may" if strlower(qid671_3_3) == "15-may" | strlower(qid671_3_3) == "may or june"
-replace qid671_3_3 = "may" if qid671_3_3 == "graduating in spring" //specific case (general rule not applied) because most graduations take place in may
-replace qid671_3_7 = "2020" if qid671_3_3 == "until the pandemic" //same as below cited reason for change
-replace qid671_3_3 = "mar" if qid671_3_3 == "until the pandemic" // "During March 2020, national, state, and local public health responses also intensified and adapted, augmenting case detection, contact tracing, and quarantine with targeted layered community mitigation measures." https://www.cdc.gov/mmwr/volumes/69/wr/mm6918e2.htm
-replace qid671_3_7 = "2021" if qid671_3_7 == "graduating in 2021"
-replace qid671_4_2 = "jan" if strpos(strlower(qid671_4_2), "january") != 0
-replace qid671_4_3 = "oct" if strlower(qid671_4_3) == "fall"
-replace qid671_4_3 = "mar" if qid671_4_3 == " until march"
-replace qid671_5_2 = "jan" if strlower(qid671_5_2) == "winter"
-replace qid671_5_3 = "jan" if strpos(strlower(qid671_5_3), "january") != 0
-replace qid671_5_7 = "2003" if qid671_5_7 == "2103"
-replace qid671_5_7 = "2002" if qid671_5_7 == "2022"
+quietly replace qid671_1_2 = "aug" if qid671_1_2 == "15-Aug"
+quietly replace qid671_1_3 = "present" if qid671_1_3 == "stlll working"
+quietly replace qid671_1_6 = "2010" if qid671_1_6 == "prior to 2010"
+quietly replace qid671_1_6 = "sep" if qid671_1_6 == "setp" 
+quietly replace qid671_2_6 = "2005" if qid671_2_6 == "2105"
+quietly replace qid671_2_6 = "2008" if qid671_2_6 == "2108"
+quietly replace qid671_2_7 = "2013" if qid671_2_7 == "20113"
+quietly replace qid671_2_7 = "2017" if qid671_2_7 == "2017 or 2018"
+quietly replace qid671_5_7 = "2003" if qid671_5_7 == "2103"
+quietly replace qid671_5_7 = "2002" if qid671_5_7 == "2022"
 
+forvalues j = 1/12{
+	local mon "2 3"
+	local year "6 7"
+	local n : word count `mon'
 
+	forvalues l = 1/`n' {
+		local a : word `l' of `mon'
+		local b : word `l' of `year'
+		
+		quietly tostring qid671_`j'_`b' , replace
+		quietly replace qid671_`j'_`b' = "" if qid671_`j'_`b' == "."
+		
+		quietly replace qid671_`j'_`a' = "may" if inlist(strtrim(strlower(qid671_`j'_`a')), "19-may", "15-may", "may or june", "graduating in spring")
+		quietly replace qid671_`j'_`a' = "jan" if inlist(strtrim(strlower(qid671_`j'_`a')), "january or february", "january-february", "winter") | strpos(strlower(qid671_`j'_`a'), "january") !=0
+		quietly replace qid671_`j'_`a' = "feb" if inlist(strtrim(strlower(qid671_`j'_`a')), "february or march", "december-april")
+		quietly replace qid671_`j'_`a' = "mar" if inlist(strtrim(strlower(qid671_`j'_`a')), "until the pandemic", "until march")
+		quietly replace qid671_`j'_`a' = "jun" if inlist(strtrim(strlower(qid671_`j'_`a')), "jume")
+		quietly replace qid671_`j'_`a' = "jul" if inlist(strtrim(strlower(qid671_`j'_`a')), "summer")
+		quietly replace qid671_`j'_`a' = "oct" if inlist(strtrim(strlower(qid671_`j'_`a')), "fall")
+
+		quietly replace qid671_`j'_`b' = "2021" if inlist(strtrim(strlower(qid671_`j'_`b')), "2121", "graduating in 2021")
+		quietly replace qid671_`j'_`b' = "2020" if inlist(strtrim(strlower(qid671_`j'_`a')), "to 2020", "until the pandemic")
+		}
+}
+
+* general fixing of dates
 forvalues j = 1/12 {
 
 	* making all "present" type responses the same
 	quietly tostring qid671_`j'_3 qid671_`j'_7, replace
-	replace qid671_`j'_3 = strlower(qid671_`j'_3)
+	quietly replace qid671_`j'_3 = strlower(qid671_`j'_3)
 	quietly replace qid671_`j'_3 = "present" if strpos(strlower(qid671_`j'_3), "current") != 0 | strpos(strlower(qid671_`j'_3), "still") != 0 | strpos(strlower(qid671_`j'_3), "present") != 0 | strpos(strlower(qid671_`j'_3), "continu") != 0 | strpos(strlower(qid671_`j'_3), "there") != 0 
-	
 	quietly replace qid671_`j'_7 = qid671_`j'_3 if qid671_`j'_3 == "present"
-	
 	quietly replace qid671_`j'_7 = "present" if strpos(strlower(qid671_`j'_7), "current") != 0 | strpos(strlower(qid671_`j'_7), "still") != 0 | strpos(strlower(qid671_`j'_7), "present") != 0 | strpos(strlower(qid671_`j'_7), "continu") != 0 | strpos(strlower(qid671_`j'_7), "there") != 0
+	quietly replace qid671_`j'_3 = qid671_`j'_7 if qid671_`j'_7 == "present"
+	
 	
 	local mon "2 3"
 	local year "6 7"
@@ -168,8 +191,6 @@ forvalues j = 1/12 {
 		local b : word `l' of `year'
 		
 		*fixing month year entry swaps 
-		quietly tostring qid671_`j'_`b' , replace
-		quietly replace qid671_`j'_`b' = "" if qid671_`j'_`b' == "."
 		quietly gen tempq = qid671_`j'_`a' if strlen(qid671_`j'_`a') == 4 & missing(real(qid671_`j'_`a')) == 0 
 		quietly replace qid671_`j'_`a' = qid671_`j'_`b' if strlen(qid671_`j'_`a') == 4 & missing(real(qid671_`j'_`a')) == 0 
 		quietly replace qid671_`j'_`b' = tempq if missing(tempq) == 0
@@ -242,8 +263,29 @@ drop child_birthday
 rename birthday child_birthday
 /*----------------------------------------------------------------*/
 
+/*----------------------------------------------------------------*/
+* All yes/no questions
+/*----------------------------------------------------------------*/
+use temp, clear
+keep uniqueid qid22 qid698 qid79 qid80 qid728 qid91 qid99 q1734 q1737 q1739 q1741 q1743
+local yes_no_q = "qid22 qid698 qid79 qid80 qid728 qid91 qid99 q1734 q1737 q1739 q1741 q1743"
+local n : word count `yes_no_q'
+label define label_temp 1 "yes" 0 "no"
+forvalues i = 1/`n' {
+	local a : word `i' of `yes_no_q'
+	replace `a' = "1" if lower(`a') == "yes"
+	replace `a' = "0" if lower(`a') == "no"
+	destring `a', replace
+	label values `a' label_temp
+}
+/*----------------------------------------------------------------*/
 *****qid96*****
-rename q2_qid96_1 qid96_2 //clean already
+use temp, clear
+rename q2_qid96_1 qid96_2 //clean already 
+*label var qid96_2 //still needs label
+
+keep uniqueid qid96_1 qid96_2
+
 ***************
 
 /******LIST OF QUESTIONS THAT NEED CLEANING*****
