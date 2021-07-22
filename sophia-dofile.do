@@ -89,13 +89,11 @@ keep uniqueid enddate q875*
 
 replace q875_1 = "2.5" if strtrim(strlower(q875_1)) == "2 1/2"
 *replace q875_1 = "march" if strpos(strlower(q875_1), "march") != 0
-replace q875_1 = "3" if q875_1 == "3 weeks"
+replace q875_1 = "3" if q875_1 == "3 weeks" | strtrim(strlower(q875_1)) == "march 31st"
 replace q875_1 = ".5" if strtrim(strlower(q875_1)) == "12 1/2 months" //obs 23 assuming they meant a year and half a month
 replace q875_5 = "1" if q875_5 == "1 and half" //obs 23 based on previous, assuming they meant a year and half a month
-replace q875_1 = "6" if strtrim(strlower(q875_1)) == "june"
-replace q875_1 = "6" if inlist(strtrim(strlower(q875_1)), "july", "june")
+replace q875_1 = "6" if strtrim(strlower(q875_1)) == "june" | inlist(strtrim(strlower(q875_1)), "july", "june")
 replace q875_1 = "0" if strtrim(strlower(q875_1)) == "march"
-replace q875_1 = "3" if strtrim(strlower(q875_1)) == "march 31st"
 
 destring q875_1 q875_5, replace force
 
