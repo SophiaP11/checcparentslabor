@@ -81,6 +81,60 @@ could possibly drop qid673 qid681 double_child1 missingf1name1 missingf1email1 m
 use temp, clear
 
 /*-------------------------------------------------*/
+* q875* - standardize responses to match simple numeric format
+/*-------------------------------------------------*/
+use temp, clear
+
+keep uniqueid enddate q875*
+
+replace q875_1 = "2.5" if strtrim(strlower(q875_1)) == "2 1/2"
+*replace q875_1 = "march" if strpos(strlower(q875_1), "march") != 0
+replace q875_1 = "3" if q875_1 == "3 weeks"
+replace q875_1 = ".5" if strtrim(strlower(q875_1)) == "12 1/2 months" //obs 23 assuming they meant a year and half a month
+replace q875_5 = "1" if q875_5 == "1 and half" //obs 23 based on previous, assuming they meant a year and half a month
+replace q875_1 = "6" if strtrim(strlower(q875_1)) == "june"
+replace q875_1 = "6" if inlist(strtrim(strlower(q875_1)), "july", "june")
+replace q875_1 = "0" if strtrim(strlower(q875_1)) == "march"
+replace q875_1 = "3" if strtrim(strlower(q875_1)) == "march 31st"
+
+destring q875_1 q875_5, replace force
+
+replace q875_5 = real(substr(enddate, strrpos(enddate,"/")+1, 4))-q875_5 if inlist(q875_5, 2007, 2008, 2016, 2017, 2020, 2021)
+
+/*-------------------------------------------------*/
+ 
+  /*-------------------------------------------------*/
+* qid87*- standardize responses to match simple numeric format
+/*-------------------------------------------------*/
+use temp, clear
+
+keep uniqueid enddate qid87*
+
+replace qid87_1 = "2" if strtrim(strlower(qid87_1)) == "august"
+replace qid87_1 = "1" if strtrim(strlower(qid87_1)) == "november"
+replace qid87_1 = "4" if strtrim(strlower(qid87_1)) == "9-aug"
+replace qid87_1 = "11" if strtrim(strlower(qid87_1)) == "feb"
+replace qid87_1 = "5" if strtrim(strlower(qid87_1)) == "10-aug"
+replace qid87_1 = "8" if strtrim(strlower(qid87_1)) == "may" | strtrim(strlower(qid87_1)) == "september"
+replace qid87_1 = "0" if strtrim(strlower(qid87_1)) == "2 days"
+
+destring qid87_1 qid87_2, replace force
+
+replace qid87_2 = real(substr(enddate, strrpos(enddate,"/")+1, 4))-qid87_2 if inlist(qid87_2, 2001, 2011, 2013, 2014, 2017, 2018, 2019, 2020)
+
+ /*-------------------------------------------------*/
+ 
+ /*-------------------------------------------------*/
+* qid83*- standardizing similar responses
+/*-------------------------------------------------*/
+use temp, clear
+
+keep uniqueid qid83
+
+replace qid83 = strtrim(strlower(qid83))
+/*-------------------------------------------------*/
+ 
+/*-------------------------------------------------*/
 * qid671 - standardize free responses and dates
 /*-------------------------------------------------*/
 use temp, clear
