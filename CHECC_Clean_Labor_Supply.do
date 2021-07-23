@@ -288,21 +288,29 @@ _3 is end month, year */
 use temp, clear
 quietly keep uniqueid qid736_2 qid736_3 qid736_1
 quietly gen qid736_n = qid736_1
-replace qid736_1 = "" if qid736_1 == "Seasonal" | qid736_1 == "hours vary every week" 
-replace qid736_1 = "30" if qid736_1 == "25 to 35 hours per week"
-replace qid736_1 = "40" if qid736_1 == "40 or more"
-foreach x in city {
-	*local a = ustrpos(qid736_1, "-")
-	display `x'
+
+replace qid736_n = "" if qid736_1 == "Seasonal" | qid736_1 == "hours vary every week" 
+replace qid736_n = "30" if qid736_1 == "25 to 35 hours per week"
+replace qid736_n = "40" if qid736_1 == "40 or more"
+
+gen a = .
+gen b = . 
+gen c = .
+foreach x in qid736_n {
+	replace a = strpos(qid736_n, "-")
+	*display `x'
 	
-	
+	display `a'
+	if `a' != 0 {
+		 replace b = substr(qid736_n, 1, 2)
+		 replace c = substr(qid736_n, 4, .)
+		 *replace qid736_n = mean((real(substr(qid736_n, 1, 2))) / real(substr(qid736_n, 4, .))) 
+	}
 }
+
 drop qid736_1
 rename qid736_n qid736_1
-*display `a'
-	/*if `a' == 3 {
-		quietly replace qid736_n = mean((real(substr(qid736_1, 1, 2))) / real(substr(qid736_1, 4, .))) 
-	}**/
+
 	
 ** Code is Format for method of seperating out month and year ** 
 // Replacing a typing error //
@@ -335,6 +343,40 @@ forvalues x = 2/3 {
 replace primary_qid736_2_year = "" if primary_qid736_2_year == "arch" | primary_qid736_2_year == "ears" 
 
 ****************************************************/
+
+***************** CLEANING Income variables for Primary Job *************/
+
+use temp, clear
+quietly keep qid1535_1 qid1536 qid1540 qid1537 qid1539 qid1541
+
+
+
+
+
+
+
+replace qid1535_1 = "prefer" if strpos(qid1535_1, "not") != 0 | strpos(qid1535_1, "to") != 0
+tab qid1535_1
+replace qid1535_1 = "dont" if strpos(lower(qid1535_1), "don't") != 0 | strpos(qid1535_1, "prefer") != 0
+tab qid1535_1
+replace qid1535_1 = "prefer" if strpos(lower(qid1535_1), "x") != 0 | strpos(qid1535_1, "dont") != 0
+replace qid1535_1 = "prefer" if strpos(lower(qid1535_1), "prefer") != 0 | strpos(qid1535_1, "dont") != 0
+replace qid1535_1 = "" if strpos(qid1535_1, "prefer") !=0 | strpos(qid1535_1, "varies")
+ preserve
+*Ask about how to delete "plus" and "day" without deleting entire entry
+replace qid1535_1 = subinstr(qid1535_1, ",", "",.)
+replace qid1535_1 = subinstr(qid1535_1, ".", "",.)
+replace qid1535_1 = subinstr(qid1535_1, "$", "",.)
+replace qid1535_1 = subinstr(qid1535_1, "-", "",.)
+*this made the 8-10,000 entry look like 810,000
+replace qid1535_1 = usubinstr(qid1535_1, "0", "", .)
+*deleted the zeroes and I'm not even sure if that looks right
+
+
+*********CLEANING Income Variables for SIDE JOB  ****************/
+use temp, clear
+quietly keep qid1560_1 q2_qid1560_1 qid1561 q2_qid156 qid1562 qid1563_1 q2_qid1563_1 qid1564 q2_qid1564
+
 
 ****cleaning q1232***********************************
 /*NOTES:
