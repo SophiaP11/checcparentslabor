@@ -281,20 +281,49 @@ OTHER:
  
 ****************************************************/
 
-***Cleaning qid736_2 and qid736_3 ***STILL WORKING ON IT*********/ 
+***Cleaning qid736_1 qid736_2 and qid736_3 ***STILL WORKING ON IT*********/ 
+/* Note: _2 is start month, year of hours per week of primary job, 
+_3 is end month, year */
 
 use temp, clear
-quietly keep uniqueid qid736_2 qid736_3
+quietly keep uniqueid qid736_2 qid736_3 qid736_1
 
-// Format for method of seperating out month and year
+replace qid736_1 = "" if qid736_1 == "Seasonal" | qid736_1 == "hours vary every week"
+replace 
+foreach x of varlist qid736_1 {
+	quietly gen qid736_n = (substr(qid736_1, 1, 2) / substr(qid736_1, 4, .)) if ustropos(qid736_1, "-") == 3
+}
 
-gen month = strlower(substr(qid736_2,1,3))
-gen year = substr(qid736_2,-4,.)
-gen m/y = month + "/" + year
 
-// Other method of directly replacing month and year
-gen qid736_new = strlower(substr(qid736_2,1,3)) + substr(qid736_2, -4,.) 
-** In the end would just replace qid736 directly
+** Code is Format for method of seperating out month and year ** 
+// Replacing a typing error //
+replace qid736_2 = "11, 2020" if qid736_2 == "112,020"
+replace qid736_3 = "1, 2021" if qid736_3 == "12,021"
+
+// Replacing months with numbers with 3-letter abbreviation and extracting year for each observation for both qid736_2 and qid736_3 // 
+forvalues x = 2/3 {
+	// Starting/Ending Month and year of previous hours at primary job 
+	gen primary_qid736_`x'_month = strlower(substr(qid736_`x',1,3))
+	gen primary_qid736_`x'_year = usubinstr(qid736_`x', "-", "20", 1)
+	quietly replace primary_qid736_`x'_year = substr(primary_qid736_`x'_year,-4,.)
+	
+	// removing prepended zeros in month 
+	quietly replace primary_qid736_`x'_month = usubinstr(primary_qid736_`x'_month, "0", "", 1) if primary_qid736_`x'_month != "10" | primary_qid736_`x'_month != "11"| primary_qid736_`x'_month != "12" 
+	// Now obtaining the 3-letter abbreviation for months that have numbers
+	local month_code = "jan feb mar apr may jun jul aug sep oct nov dec"
+	quietly gen temp`x'= ""
+	forvalues i = 1/12 {
+		local a : word `i' of `month_code'
+			quietly replace primary_qid736_`x'_month= "`a'" if primary_qid736_`x'_month == "`i',"
+			quietly replace temp = "`a'" if primary_qid736_`x'_month == "`a'"
+			
+		}
+		quietly replace primary_qid736_`x'_month = temp`x'
+		drop temp`x' 
+
+}
+// Replacing obs. that don't have any value for years 
+replace primary_qid736_2_year = "" if primary_qid736_2_year == "arch" | primary_qid736_2_year == "ears" 
 
 ****************************************************/
 
