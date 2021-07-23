@@ -78,8 +78,11 @@ could possibly drop qid681 double_child1 missingf1name1 missingf1email1 missingf
 use temp, clear
 
 /*----------- Encoding Yes/No questions----------*/
+// Added in yes/no questions that are part of the demographics info 
 
-local questions "qid79 qid80 qid728 qid91 qid99 q1734 q1737 q1739 q1741 q1743"
+replace child_gender = "Female" if child_gender == "F"
+replace child_gender = "Male" if child_gender == "M"
+local questions "qid79 qid80 qid728 qid91 qid99 q1734 q1737 q1739 q1741 q1743 qid673 qid22 qid698 child_gender other_child1_gender other_child2_gender other_child3_gender"
 foreach v of varlist `questions' {
 	encode `v', generate(`v'_n)
 	drop `v'
@@ -281,7 +284,26 @@ OTHER:
  
 ****************************************************/
 
-***Cleaning qid736_1 qid736_2 and qid736_3 ***STILL WORKING ON IT*********/ 
+
+***********CLEANING qid97* //////**************
+
+replace qid97_1 = "2.5" if qid97_1 == "2 1/2" 
+destring qid97_1, replace float
+
+label var qid97_2 "Years parent working current SIDE JOB"
+label var qid97_1 "Months parent working current SIDE JOB"
+label var q2_qid97_2 "Years parent working current 2nd SIDE JOB"
+label var q2_qid97_1 "Months parent working current 2nd SIDE JOB"
+
+******** Cleaning qid737* ////********************
+
+replace qid737_1 = "" if qid737_1 == "Varies" | qid737_1 == "2-Jan" // Ambigious answer for number of hours worked and 2-Jan is a date
+replace qid737_1 = "50" if qid737_1 == "40-60"
+
+destring qid737_1, replace 
+
+*********Cleaning qid736_1 qid736_2 and qid736_3 ***STILL WORKING ON IT*********/ 
+
 /* Note: _2 is start month, year of hours per week of primary job, 
 _3 is end month, year */
 
@@ -311,6 +333,7 @@ foreach x in qid736_n {
 drop qid736_1
 rename qid736_n qid736_1
 
+/******************** Now cleaning qid736_2 and qid736_3 *******************/
 	
 ** Code is Format for method of seperating out month and year ** 
 // Replacing a typing error //
