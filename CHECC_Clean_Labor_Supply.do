@@ -287,14 +287,23 @@ _3 is end month, year */
 
 use temp, clear
 quietly keep uniqueid qid736_2 qid736_3 qid736_1
-
-replace qid736_1 = "" if qid736_1 == "Seasonal" | qid736_1 == "hours vary every week"
-replace 
-foreach x of varlist qid736_1 {
-	quietly gen qid736_n = (substr(qid736_1, 1, 2) / substr(qid736_1, 4, .)) if ustropos(qid736_1, "-") == 3
+quietly gen qid736_n = qid736_1
+replace qid736_1 = "" if qid736_1 == "Seasonal" | qid736_1 == "hours vary every week" 
+replace qid736_1 = "30" if qid736_1 == "25 to 35 hours per week"
+replace qid736_1 = "40" if qid736_1 == "40 or more"
+foreach x in city {
+	*local a = ustrpos(qid736_1, "-")
+	display `x'
+	
+	
 }
-
-
+drop qid736_1
+rename qid736_n qid736_1
+*display `a'
+	/*if `a' == 3 {
+		quietly replace qid736_n = mean((real(substr(qid736_1, 1, 2))) / real(substr(qid736_1, 4, .))) 
+	}**/
+	
 ** Code is Format for method of seperating out month and year ** 
 // Replacing a typing error //
 replace qid736_2 = "11, 2020" if qid736_2 == "112,020"
