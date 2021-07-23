@@ -3,14 +3,14 @@ PROJECT: CHECC Parents Labor Supply
 TOPIC: CLEANING DATASET 
 AUTHOR: Sophia
 DATE CREATED: 30/06/2021
-LAST MODIFIED: 21/07/2021 
+LAST MODIFIED: 22/07/2021 
 
 NOTES: 
 
 ------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------*/
-						*--------* BASIC SETUP *-------*
+		*--------* BASIC SETUP *-------*
 /*----------------------------------------------------------------------------*/
 
 clear all 
@@ -38,7 +38,7 @@ if "`c(username)'"=="jonathanlambrinos" {
 }
 
 /*----------------------------------------------------------------------------*/
-						*-------* DATA CLEANING *-------*
+		*-------* DATA CLEANING *-------*
 /*----------------------------------------------------------------------------*/
 
 * creating a temp file to manipulate data and test code
@@ -49,7 +49,7 @@ use temp, clear
 drop if progress != 100
 
 * droping empty variables
-quietly nmissing, min(_all) piasm trim " "
+quietly nmissing, min(_N) piasm trim " "
 quietly drop `r(varlist)'
 
 * getting rid of starting _ from variable names
@@ -72,7 +72,7 @@ order uniqueid, first
 save temp, replace 
 
 /*----------------------------------------------------------------------------*/
-					*---------*  EXPERIMENTING  *---------*
+		*---------*  EXPERIMENTING  *---------*
 /*----------------------------------------------------------------------------*/
 
 /*NOTES:
@@ -80,9 +80,9 @@ could possibly drop qid673 qid681 double_child1 missingf1name1 missingf1email1 m
 */
 use temp, clear
 
-/*-------------------------------------------------*/
+/*----------------------------------------------------------------*/
 * q875* - standardize responses to match simple numeric format
-/*-------------------------------------------------*/
+/*----------------------------------------------------------------*/
 use temp, clear
 
 keep uniqueid enddate q875*
@@ -103,19 +103,16 @@ destring q875_1 q875_5, replace force
 replace q875_5 = real(substr(enddate, strrpos(enddate,"/")+1, 4))-q875_5 if inlist(q875_5, 2007, 2008, 2016, 2017, 2020, 2021)
 
 * making # of years = 0 if # of months is listed, but not # of years
-list q875_5 if q875_5 >= 0 & missing(q875_5) == 0 & missing(q875_1) == 1
 replace q875_5 = 0 if q875_1 >= 0 & missing(q875_5) == 1 & missing(q875_1) == 0
 
-/*-------------------------------------------------*/
+/*----------------------------------------------------------------*/
  
-  /*-------------------------------------------------*/
+/*----------------------------------------------------------------*/
 * qid87*- standardize responses to match simple numeric format
-/*-------------------------------------------------*/
+/*----------------------------------------------------------------*/
 use temp, clear
 
 keep uniqueid enddate qid87*
-
-list qid87_1 if inlist(strtrim(strlower(qid87_1)), "august", "november", "9-aug", "feb", "10-aug", "may", "september" )
 
 * fixing specific errors
 replace qid87_1 = "2" if strtrim(strlower(qid87_1)) == "august"
@@ -136,29 +133,97 @@ destring qid87_1 qid87_2, replace force
 replace qid87_2 = real(substr(enddate, strrpos(enddate,"/")+1, 4))-qid87_2 if inlist(qid87_2, 2001, 2011, 2013, 2014, 2017, 2018, 2019, 2020)
 
 * making # of years = 0 if # of months is listed, but not # of years
-list qid87_1 if qid87_1 >= 0 & missing(qid87_1) == 0 & missing( qid87_2) == 1
 replace qid87_2 = 0 if qid87_1 >= 0 & missing(qid87_1) == 0 & missing( qid87_2) == 1
 
 * subtracting more than a year of months and adding to year column
-list qid87_1 if qid87_1 >= 12 & missing(qid87_1) == 0
 replace qid87_2 = qid87_2+1 if qid87_1 >= 12  & missing(qid87_1) == 0
 replace qid87_1 = qid87_1-12 if qid87_1 >= 12  & missing(qid87_1) == 0
-
- /*-------------------------------------------------*/
+/*----------------------------------------------------------------*/
  
- /*-------------------------------------------------*/
-* qid83*- standardizing similar responses
-/*-------------------------------------------------*/
+/*----------------------------------------------------------------*/
+* qid83 qid84  qid695 *qid94* - standardizing/simplifying free responses
+/*----------------------------------------------------------------*/
 use temp, clear
 
-keep uniqueid qid83
+keep uniqueid qid83 qid84 qid695 *qid94*
 
-replace qid83 = strtrim(strlower(qid83))
+rename q2_qid94 qid94_2
+rename qid94 qid94_1
+
+*getting rid of trailing spaces and capitalization
+quietly replace qid83 = strtrim(strlower(qid83))
+quietly replace qid84 = strtrim(strlower(qid84))
+quietly replace qid695 = strlower(strtrim(qid695))
+quietly replace qid94_1 = strtrim(strlower(qid94_1))
+quietly replace qid94_2 = strtrim(strlower(qid94_2))
+
+*--* qid695 *--*
+quietly replace qid695 = "" if inlist(qid695, "11-jul")
+quietly replace qid695 = "at&t" if inlist(qid695, "at&t", "atand t", "at and t")
+quietly replace qid695 = "addus healthcare" if inlist(qid695, "addis", "addus homecare", "addus health care", "addus home health care", "addus healthhcare" )
+quietly replace qid695 = "aunt martha's" if strpos(qid695, "aunt martha") != 0
+quietly replace qid695 = "blue cross" if strpos(qid695, "blue cross") != 0
+quietly replace qid695 = "chicago public schools" if strpos(qid695, "chicago public schools") != 0
+quietly replace qid695 = "dcfs" if strpos(qid695, "dcfs") != 0 | qid695 == "department of child and family services"
+quietly replace qid695 = "elisabeth ludeman center" if strpos(qid695, "ludeman") != 0
+quietly replace qid695 = "fifth third bank" if strpos(qid695, "fifth third") != 0
+quietly replace qid695 = "franciscan health olympia fields" if strpos(qid695, "franciscan health") != 0
+quietly replace qid695 = "harvey school district 152" if strpos(qid695, "harvey") != 0 & strpos(qid695, "152") != 0
+quietly replace qid695 = "prairie hills school district 144" if strpos(qid695, "prairie hills") != 0 & strpos(qid695, "144") != 0
+quietly replace qid695 = "prefer not to answer" if strpos(qid695, "prefer not to") != 0
+quietly replace qid695 = "sd 170" if strpos(qid695, "sd") != 0 & strpos(qid695, "170") != 0
+quietly replace qid695 = "sd 194" if strpos(qid695, "sd") != 0 & strpos(qid695, "194") != 0
+quietly replace qid695 = "self-employed" if strpos(qid695, "self") != 0 & strpos(qid695, "employ") != 0
+quietly replace qid695 = "speciality physicians of illinois" if strpos(qid695, "speciality physicians of") != 0
+quietly replace qid695 = "state of illinois" if inlist(qid695, "state if il", "state of illinois")
+quietly replace qid695 = "university of illinois chicago" if inlist(qid695, "uic", "u of illinois chicago")
+/*----------------------------------------------------------------*/
+  
+/*----------------------------------------------------------------*/
+* qid85- standardize responses to match simple numeric format
+/*----------------------------------------------------------------*/
+use temp, clear
+
+keep uniqueid qid85_1
+
+rename qid85_1 qid85
+quietly replace qid85 = strtrim(strlower(qid85))
+
+*replacing responses with averages if ranges
+quietly replace qid85 = "" if missing(real(substr(qid85, -2, 2))) & strpos(qid85, "-") != 0 
+quietly replace qid85 = strofreal((real(substr(qid85, 1, 2))+real(substr(qid85, -2, 2)))/2) if strpos(qid85, "-") != 0 | strpos(qid85, "to") != 0 & !missing(real(substr(qid85, -2, 2)))
+
+*getting rid of extra characters assuming only 2 digits at most
+quietly replace qid85 = strtrim(substr(qid85, 1, 2)) if missing(real(qid85))
+
+quietly destring qid85 , replace force
 /*-------------------------------------------------*/
  
-/*-------------------------------------------------*/
+/*----------------------------------------------------------------*/
+* *qid96*- standardize responses to match simple numeric format
+/*----------------------------------------------------------------*/
+use temp, clear
+
+keep uniqueid qid96_1 q2_qid96_1
+
+rename q2_qid96_1 qid96_2 
+quietly replace qid96_1 = strtrim(strlower(qid96_1))
+
+*fixing specific errors
+replace qid96_1 = "5" if qid96_1 == "2 days per month for total of 20 hours"
+replace qid96_1 = "4.5" if strpos(qid96_1, "4-5") != 0
+replace qid96_1 = "25" if strpos(qid96_1, "25 hours") != 0
+
+*replacing responses with averages if ranges
+quietly replace qid96_1 = "" if missing(real(substr(qid96_1, -2, 2))) & strpos(qid96_1, "-") != 0 
+quietly replace qid96_1 = strofreal((real(substr(qid96_1, 1, 2))+real(substr(qid96_1, -2, 2)))/2) if strpos(qid96_1, "-") != 0 | strpos(qid96_1, "to") != 0 & !missing(real(substr(qid96_1, -2, 2)))
+
+quietly destring qid96_1, replace force
+/*----------------------------------------------------------------*/
+ 
+/*----------------------------------------------------------------*/
 * qid671 - standardize free responses and dates
-/*-------------------------------------------------*/
+/*----------------------------------------------------------------*/
 use temp, clear
 quietly keep uniqueid qid671*
 drop qid671_*_2 qid671_*_6 qid671_*_3 qid671_*_7 qid671_*_4
@@ -304,17 +369,11 @@ forvalues j = 1/12 {
 		}
 }
 
-/*
-forvalues j = 1/12 {
-	tab qid671_`j'_2
-	tab qid671_`j'_6
-	tab qid671_`j'_3
-	tab qid671_`j'_7
-	}
-*/
-****************************************************/
+/*----------------------------------------------------------------*/
 
-****cleaning q1232***********************************
+/*----------------------------------------------------------------*/
+*q1232
+/*----------------------------------------------------------------*/
 /*NOTES:
 _1 = School Name _10 = School District _11 = School City 
 _14 probably = same as previous grade
@@ -323,8 +382,7 @@ _14 and _15 meanings could be swapped
 */
 use temp, clear
 keep uniqueid q1232*
-
-****************************************************
+/*----------------------------------------------------------------*/
 
 /*----------------------------------------------------------------*/
 * child_birthday - standardize date and convert to stata data format
@@ -343,26 +401,18 @@ rename birthday child_birthday
 * All yes/no questions
 /*----------------------------------------------------------------*/
 use temp, clear
+
 keep uniqueid qid22 qid698 qid79 qid80 qid728 qid91 qid99 q1734 q1737 q1739 q1741 q1743
-local yes_no_q = "qid22 qid698 qid79 qid80 qid728 qid91 qid99 q1734 q1737 q1739 q1741 q1743"
-local n : word count `yes_no_q'
-label define label_temp 1 "yes" 0 "no"
-forvalues i = 1/`n' {
-	local a : word `i' of `yes_no_q'
-	replace `a' = "1" if lower(`a') == "yes"
-	replace `a' = "0" if lower(`a') == "no"
-	destring `a', replace
-	label values `a' label_temp
+
+local questions "qid22 qid698 qid79 qid80 qid728 qid91 qid99 q1734 q1737 q1739 q1741 q1743"
+foreach v of varlist `questions' {
+	encode `v', generate(`v'_n)
+	drop `v'
+	rename `v'_n `v'
 }
 /*----------------------------------------------------------------*/
-*****qid96*****
-use temp, clear
-rename q2_qid96_1 qid96_2 //clean already 
-*label var qid96_2 //still needs label
 
-keep uniqueid qid96_1 qid96_2
-
-***************
+/*----------------------------------------------------------------*/
 
 /******LIST OF QUESTIONS THAT NEED CLEANING*****
 use temp, clear
