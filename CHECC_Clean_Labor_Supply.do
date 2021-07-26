@@ -45,9 +45,9 @@ save temp, replace
 use temp, clear
 
 *droping empty variables
-quietly nmissing, min(_all) piasm trim " " // finding variables missing all obs
+quietly nmissing, min(_N) piasm trim " " // finding variables missing all obs
 quietly drop `r(varlist)' // dropping them
-drop if _n == 63
+drop if q711 != "Now is fine"
 drop if progress <= 2
 
 *getting rid of starting _ from variable names
@@ -308,14 +308,13 @@ destring qid737_1, replace
 _3 is end month, year */
 
 use temp, clear
-quietly keep uniqueid qid736_2 qid736_3 qid736_1
-quietly gen qid736_n = qid736_1
+quietly keep uniqueid qid736*
 
 replace qid736_1 = "" if qid736_1 == "Seasonal" | qid736_1 == "hours vary every week" 
 replace qid736_1 = "30" if qid736_1 == "25 to 35 hours per week"
 replace qid736_1 = "40" if qid736_1 == "40 or more"
 replace qid736_1 = string((real(substr(qid736_1, 1, 2)) + real(substr(qid736_1, 4, .)))/2) if strpos(qid736_1, "-") > 0
-
+destring qid736_1, replace
 
 /******************** Now cleaning qid736_2 and qid736_3 *******************/
 	
