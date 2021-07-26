@@ -311,27 +311,11 @@ use temp, clear
 quietly keep uniqueid qid736_2 qid736_3 qid736_1
 quietly gen qid736_n = qid736_1
 
-replace qid736_n = "" if qid736_1 == "Seasonal" | qid736_1 == "hours vary every week" 
-replace qid736_n = "30" if qid736_1 == "25 to 35 hours per week"
-replace qid736_n = "40" if qid736_1 == "40 or more"
+replace qid736_1 = "" if qid736_1 == "Seasonal" | qid736_1 == "hours vary every week" 
+replace qid736_1 = "30" if qid736_1 == "25 to 35 hours per week"
+replace qid736_1 = "40" if qid736_1 == "40 or more"
+replace qid736_1 = string((real(substr(qid736_1, 1, 2)) + real(substr(qid736_1, 4, .)))/2) if strpos(qid736_1, "-") > 0
 
-gen a = .
-gen b = . 
-gen c = .
-foreach x in qid736_n {
-	replace a = strpos(qid736_n, "-")
-	*display `x'
-	
-	display `a'
-	if `a' != 0 {
-		 replace b = substr(qid736_n, 1, 2)
-		 replace c = substr(qid736_n, 4, .)
-		 *replace qid736_n = mean((real(substr(qid736_n, 1, 2))) / real(substr(qid736_n, 4, .))) 
-	}
-}
-
-drop qid736_1
-rename qid736_n qid736_1
 
 /******************** Now cleaning qid736_2 and qid736_3 *******************/
 	
