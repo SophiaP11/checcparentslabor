@@ -47,9 +47,10 @@ use temp, clear
 drop if progress <= 2
 drop if q711 != "Now is fine"
 
-* droping empty variables
+* droping empty/unneeded variables
 quietly nmissing, min(_N) piasm trim " "
 quietly drop `r(varlist)'
+drop q1024
 
 * getting rid of starting _ from variable names
 rename _* *
@@ -496,15 +497,14 @@ use temp, clear
 foreach v in `r(varlist)' {
 	tab `v' if strlower(strtrim(`v')) == "yes" | strlower(strtrim(`v')) == "no"
 }*/
-keep uniqueid 
+keep uniqueid q711 qid636 qid24 qid673 qid681 qid131 qid134 qid140 qid690 q801* q813* q814* q1231* q1866
 
-local questions ""
+local questions "q711 qid636 qid24 qid673 qid681 qid131 qid134 qid140 qid690 q801* q813* q814* q1231* q1866"
 foreach v of varlist `questions' {
 	encode `v', generate(`v'_n)
 	drop `v'
 	rename `v'_n `v'
 }
-
 /*----------------------------------------------------------------*/
 
 /*----------------------------------------------------------------*/
@@ -710,15 +710,13 @@ replace primary_qid736_2_year = "" if primary_qid736_2_year == "arch" | primary_
 /*----------------------------------------------------------------*/
  look at *qid15*  
  
- needs to be cleaned q878* qid113_1 qid115* qid738* *qid122_1 *qid124* qid739* q1222 q879*
-
-encode q711 qid636 qid24 qid673 qid681 qid131 qid134 qid140
+ needs to be cleaned q878* qid113_1 qid115* qid738* *qid122_1 *qid124* qid739* q1222 q879* qid145_1 qid147* qid740* qid689* other_child*_birthday q1233*
 
 /*----------------------------------------------------------------*/
 * Clean Questions - seeing what is left to clean
 /*----------------------------------------------------------------*/
 use temp, clear
-drop startdate enddate status ipaddress progress durationinseconds finished recordeddate responseid recipientemail externalreference locationlatitude locationlongitude distributionchannel userlanguage qid597 q1026 q887 q1228 qid23 qid81* qid82 qid736* qid92 *qid95 q875* qid87* qid83 qid84 q886 q883 qid108* qid109 qid110 qid696 qid111 qid118 *qid120 qid136 qid137 qid138 q885 qid141  *qid121 qid695 *qid94* qid85_1 *qid96* qid671* q1232* child_birthday qid22 qid698 qid79 qid80 qid728 qid91 *qid99* q1734 q1737 q1739 q1741 q1743 qid106 qid107 qid729 qid117 *qid125* q1751 q1754 q1756 q1758 q1760 qid132 qid688 qid135 qid139 qid158 qid730 qid149 *qid157* q756 q1791 q1792 q1815 q1833 q1835 q1850 q1867 q1869 q1870 q1874 q1891 q1797 q1896 q2003 child_gender other_child1_gender other_child2_gender other_child3_gender *qid97* qid737* qid680* qid15* q17*
+drop startdate enddate status ipaddress progress durationinseconds finished recordeddate responseid recipientemail externalreference locationlatitude locationlongitude distributionchannel userlanguage time location interviewer parent_name otherguardian* other_child1 other_child2 other_child3 adult1 adult2 tag2 q_totalduration f1_home1 apartment alt_fid* test  previous_address district1 livewith_child marital_status parent_education job_title hours_week income income_period multiple qid597 q1026 q887 q1228 qid23 qid81* qid82 qid736* other_child_id_* qid92 *qid95 q875* qid87* qid83 qid84 q886 q883 qid108* qid109 qid110 qid696 qid111 qid118 *qid120 qid136 qid137 qid138 q885 qid141 qid142 qid697 qid143 qid741* *qid121 qid695 *qid94* qid85_1 *qid96* double_child1 missingf1name1 missingf1email1 missingf1phone1 qid671* q1232* child_birthday qid22 qid698 q827 fid child_name q1226 address city state zipcode phone* email* child_race interview_date qid79 qid80 qid728 qid91 *qid99* q1734 q1737 q1739 q1741 q1743 qid106 qid107 qid729 qid117 *qid125* q1751 q1754 q1756 q1758 q1760 qid132 qid688 qid135 qid139 qid158 qid730 qid149 *qid157* q756 q1791 q1792 q1815 q1833 q1835 q1850 q1867 q1869 q1870 q1874 q1891 q1797 q1896 q2003 child_gender other_child1_gender other_child2_gender other_child3_gender *qid97* qid737* qid680* q711 qid636 qid24 qid673 qid681 qid131 qid134 qid140 qid690 q801* q813* q814* q1231* q1895 q1898 q2001* q2002 q2005 q2117* q1866 qid15* q17*
 /*----------------------------------------------------------------*/
 
 
