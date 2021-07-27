@@ -44,7 +44,8 @@ save temp, replace
 use temp, clear
 
 * dropping incomplete surveys
-drop if progress != 100
+drop if progress <= 2
+drop if q711 != "Now is fine"
 
 * droping empty variables
 quietly nmissing, min(_N) piasm trim " "
@@ -103,7 +104,7 @@ replace q875_5 = 0 if q875_1 >= 0 & missing(q875_5) == 1 & missing(q875_1) == 0
 /*----------------------------------------------------------------*/
  
 /*----------------------------------------------------------------*/
-* qid87*- standardize responses to match simple numeric format
+* qid87*- standardize responses to match simple numeric format - NEEDS TO BE CHECKED
 /*----------------------------------------------------------------*/
 use temp, clear
 keep uniqueid enddate qid87*
@@ -249,6 +250,7 @@ forvalues i = 1/12 {
 --graduating in spring is specific case (general rule not applied) because most graduations take place in may
 -"until the pandemic" == mar 2020 because "During March 2020, national, state, and local public health responses also intensified and adapted, augmenting case detection, contact tracing, and quarantine with targeted layered community mitigation measures." https://www.cdc.gov/mmwr/volumes/69/wr/mm6918e2.htm
 */
+keep uniqueid qid671_*_2 qid671_*_3 qid671_*_6 qid671_*_7
 
 * fixing specific errors
 quietly replace qid671_1_2 = "aug" if qid671_1_2 == "15-Aug"
@@ -344,7 +346,176 @@ forvalues j = 1/12 {
 		}
 }
 /*----------------------------------------------------------------*/
+ 
+/*----------------------------------------------------------------*/
+* qid680* - standardize free responses and dates
+/*----------------------------------------------------------------*/
+/*NOTES:
+- _1_* = job status (eg. working, unemployed, student)
+- _2_* = employment type (eg. part time, full time)
+- _3_* = job/degree title (eg. truck driver, factory worker, welder)
+- _4_* = start month
+- _5_* = start year
+- _6_* = end month
+- _7_* = end year
+- where the * is, is the job number
+ */
+use temp, clear
+quietly keep uniqueid qid680*
 
+*---* fixing qid680_2_* *---*
+
+* creating empty variables to allow for loops (will be dropped after)
+forvalues i = 1/7 {
+gen qid680_`i'_6 = ""
+}
+
+* making all responses either part time, full time, or blank
+forvalues i = 1/9 {
+	replace qid680_3_`i' = qid680_2_`i' if inlist(qid680_2_`i', "Drafter", "Project Coordinator")
+	replace qid680_1_`i' = qid680_2_`i' if strpos(qid680_2_`i', "Student") != 0
+	replace qid680_2_`i' = "" if inlist(qid680_2_`i', "Drafter", "Project Coordinator")
+	quietly replace qid680_2_`i' = "full time" if strpos(strlower(qid680_2_`i'), "ful") != 0 | strpos(strlower(qid680_2_`i'), "ft")
+	quietly replace qid680_2_`i' = "part time" if strpos(strlower(qid680_2_`i'), "part") != 0 | strpos(strlower(qid680_2_`i'), "pt") |strpos(strlower(qid680_2_`i'), "pert")
+	quietly replace qid680_2_`i' = "" if qid680_2_`i' != "part time" & qid680_2_`i' != "full time"
+	tab qid680_2_`i'
+}
+
+*---* fixing qid680_1_* *---*
+
+* making all responses either unemployed, working, student or blank
+forvalues i = 1/9 {
+	list qid680_1_`i' qid680_4_`i' qid680_5_`i' qid680_6_`i' qid680_7_`i' if strpos(strtrim(strlower(qid680_1_`i')), "april through dec") != 0
+	replace qid680_3_`i' = strtrim(substr(qid680_1_`i', strpos(qid680_1_`i', "-")+1, .)) + "-" + qid680_3_`i' if strpos(strtrim(strlower(qid680_1_`i')), "assistant professor") != 0
+	//list qid680_3_`i' if strpos(strtrim(strlower(qid680_1_`i')), "assistant professor") != 0
+	//tab qid680_1_`i'
+	replace qid680_1_`i' = "unemployed" if strpos(strlower(qid680_1_`i'), "unemploy") != 0 | strpos(strlower(qid680_1_`i'), "leave") != 0 | strpos(strlower(qid680_1_`i'), "home") != 0 | strpos(strlower(qid680_1_`i'), "not work") !=0 | strpos(strlower(qid680_1_`i'), "disabled") !=0 | inlist(strtrim(strlower(qid680_1_`i')), "furloughed", "layed off", "retired", "umnemployed") 
+	
+	replace qid680_1_`i' = "working" if strpos(strlower(qid680_1_`i'), "work") != 0 | strpos(strlower(qid680_1_`i'), "intern") != 0 | strpos(strlower(qid680_1_`i'), "self employ") != 0 | inlist(strtrim(strlower(qid680_1_`i')), "medical dealer", "truck driver", "employed", "military") 
+	
+	replace qid680_1_`i' = "student" if strpos(strlower(qid680_1_`i'), "student") != 0 | strpos(strlower(qid680_1_`i'), "school") != 0
+	
+	//replace qid671_`i'_5 = "" if !inlist(qid671_`i'_5, "student", "working", "unemployed")
+	tab qid680_1_`i'
+}
+*-----* fixing date columns: qid680_4* qid680_5* qid680_6* qid680_7* *-----*
+/*Notes: 
+-x or y options were rounded down
+-for range of months chose average, rounded down
+-seasons were transfered to a month range based on meteorological seasons {spring: mar-may summer: jun-aug fall: sep-nov winter: dec-feb} and then the above rule applied so spring=apr summer=jul fall=oct winter=jan
+--graduating in spring is specific case (general rule not applied) because most graduations take place in may
+-"until the pandemic" == mar 2020 because "During March 2020, national, state, and local public health responses also intensified and adapted, augmenting case detection, contact tracing, and quarantine with targeted layered community mitigation measures." https://www.cdc.gov/mmwr/volumes/69/wr/mm6918e2.htm
+*/
+use temp, clear
+keep uniqueid qid680_4* qid680_5* qid680_6* qid680_7*
+forvalues i = 1/7 {
+gen qid680_`i'_6 = ""
+}
+
+* fixing specific errors
+replace qid680_5_5 = "1989" if qid680_4_5 == "May-89"
+replace qid680_5_1 = "2002" if qid680_5_1 == "2002/2003"
+replace qid680_5_3 = "2011" if qid680_5_3 == "6 months in 2011"
+replace qid680_5_5 = "2010" if qid680_5_5 == "2011/2010"
+replace qid680_7_1 = "2020" if strpos(strtrim(strlower(qid680_6_1)), "pandemic") != 0
+replace qid680_6_1 = "mar" if strpos(strtrim(strlower(qid680_6_1)), "pandemic") != 0
+replace qid680_7_1 = "2019" if strpos(strtrim(strlower(qid680_7_1)), "2019 (worked this job") != 0
+
+//forvalues j = 1/9{
+	//tab1 qid680_4_`j' qid680_5_`j' qid680_6_`j' qid680_7_`j'
+//}
+
+* general fixing of dates
+forvalues j = 1/9 {
+	tab1 qid680_4_`j' qid680_5_`j' qid680_6_`j' qid680_7_`j'
+	quietly tostring  qid680_4_`j' qid680_5_`j' qid680_6_`j' qid680_7_`j', replace
+	
+	* making all "present" type responses the same
+	quietly replace qid680_6_`j' = strlower(qid680_6_`j')
+	quietly replace qid680_6_`j' = "present" if strpos(strlower(qid680_6_`j'), "current") != 0 | strpos(strlower(qid680_6_`j'), "still") != 0 | strpos(strlower(qid680_6_`j'), "present") != 0 | strpos(strlower(qid680_6_`j'), "continu") != 0 | strpos(strlower(qid680_6_`j'), "there") != 0 
+	quietly replace qid680_7_`j' = qid680_6_`j' if qid680_6_`j' == "present"
+	quietly replace qid680_7_`j' = "present" if strpos(strlower(qid680_7_`j'), "current") != 0 | strpos(strlower(qid680_7_`j'), "still") != 0 | strpos(strlower(qid680_7_`j'), "present") != 0 | strpos(strlower(qid680_7_`j'), "continu") != 0 | strpos(strlower(qid680_7_`j'), "there") != 0
+	quietly replace qid680_6_`j' = qid680_7_`j' if qid680_7_`j' == "present"
+	
+	
+	local mon "4 6"
+	local year "5 7"
+	local n : word count `mon'
+	
+	* fixing month year entry swaps 
+	forvalues l = 1/`n' {
+		local a : word `l' of `mon'
+		local b : word `l' of `year'
+		
+		quietly gen tempq = qid680_`a'_`j' if strlen(qid680_`a'_`j') == 4 & missing(real(qid680_`a'_`j')) == 0 
+		quietly replace qid680_`a'_`j' = qid680_`b'_`j' if strlen(qid680_`a'_`j') == 4 & missing(real(qid680_`a'_`j')) == 0 
+		quietly replace qid680_`b'_`j' = tempq if missing(tempq) == 0
+		drop tempq
+	}
+	
+	forvalues l = 1/`n' {
+		local k : word `l' of `mon'
+	* making all month entries in same format
+		quietly gen pres = qid680_`k'_`j' if qid680_`k'_`j' == "present"
+		quietly gen month = strlower(substr(qid680_`k'_`j',1,3)) //creating new variable with just first 3 characters of response
+
+		quietly replace month = usubinstr(month, "0", "", 1) if month != "10" | month != "11"| month != "12"
+
+		local month_code = "jan feb mar apr may jun jul aug sep oct nov dec"
+		local p : word count `month_code'
+
+			* replace month with empty if input is invalid
+			* replace 1-12 with month values
+		quietly gen tempq = ""
+		forvalues i = 1/`p' {
+			local a : word `i' of `month_code'
+			quietly replace month = "`a'" if month == "`i'"
+			quietly replace tempq = "`a'" if month == "`a'"
+		}
+		quietly replace month = tempq
+		quietly replace qid680_`k'_`j' = month
+		quietly replace qid680_`k'_`j' = pres if missing(pres) == 0
+		drop tempq month pres
+	}
+	
+	* getting rid of responses that aren't years or present
+	forvalues l = 1/`n' {
+		local b : word `l' of `year'
+		quietly replace qid680_`b'_`j' = "" if strlen(qid680_`b'_`j') != 4 & qid680_`b'_`j' != "present"
+		quietly replace qid680_`b'_`j' = "" if missing(real(qid680_`b'_`j')) == 1 & qid680_`b'_`j' != "present" 
+		}
+	tab1 qid680_4_`j' qid680_5_`j' qid680_6_`j' qid680_7_`j'
+}
+/*----------------------------------------------------------------*/
+
+/*----------------------------------------------------------------*/
+* All 1-3 response options questions - encode responses
+/*----------------------------------------------------------------*/
+use temp, clear
+/*quietly ds, has(type string)
+foreach v in `r(varlist)' {
+	tab `v' if strlower(strtrim(`v')) == "yes" | strlower(strtrim(`v')) == "no"
+}*/
+keep uniqueid 
+
+local questions ""
+foreach v of varlist `questions' {
+	encode `v', generate(`v'_n)
+	drop `v'
+	rename `v'_n `v'
+}
+
+/*----------------------------------------------------------------*/
+
+/*----------------------------------------------------------------*/
+*qid109 - convert to numeric
+/*----------------------------------------------------------------*/
+use temp, clear
+keep uniqueid qid109
+
+destring qid109, replace force
+
+/*----------------------------------------------------------------*/
 ////////////////////////////////////////////////////////////////////
 *-/-/-/-/-/-/-/-/-/-/-/-* JONATHAN CLEANING*-/-/-/-/-/-/-/-/-/-/-/-*
 ////////////////////////////////////////////////////////////////////
@@ -377,13 +548,59 @@ rename birthday child_birthday
 /*----------------------------------------------------------------*/
 
 /*----------------------------------------------------------------*/
+* Income variables - 
+/*----------------------------------------------------------------*/
+use temp, clear
+keep uniqueid qid15*
+local value_col = "qid1535_1 qid1548_1 qid1560_1"
+local freq_col = "qid1536 qid1549 qid1561" 
+local additional_col = "qid1540 qid1550 qid1562"
+local m: word count `freq_col'
+local pay_code = "annually bi-weekly hourly monthly weekly daily"
+*Assuming working 8 hours a day, 5 days a week, every day
+local annual_constant = "1 26 2080 12 52 365"
+local n : word count `pay_code'
+*Drop every value that is not a pay_code
+forvalues i = 1/`m' {
+	local b : word `i' of `freq_col'
+	gen place_holder = 0
+	forvalues j = 1/`n' {
+		local a : word `j' of `pay_code'
+		replace place_holder = 1 if lower(`b') == "`a'"
+	}
+	replace `b' = "" if place_holder == 0
+	drop place_holder
+}
+forvalues j = 1/`m'{ 
+	local c : word `j' of `value_col'
+	local d : word `j' of `freq_col'
+	local e : word `j' of `additional_col'
+	gen stan_inc_`c' = .
+	*remove commas
+	replace `c' = subinstr(`c', ",", "",.) 
+	replace `c' = subinstr(`c', ".00", "",.) 
+	replace `c' = subinstr(`c', " plus", "",.) 
+	replace `d' = "Daily" if strpos(`c', "day") | strpos(`e', "daily") | `e' == "flat rate"
+	replace `c' = subinstr(`c', " day", "",.) 
+	replace `c' = subinstr(`c', "/day", "",.) 
+	replace `c' = trim(subinstr(`c', "$", "",.))
+	*change the 8-10
+	replace `c' = "9000" if `c' == "8-10000"
+ 
+	*convert qid1535_1 to real()
+	destring `c', replace force
+  
+	forvalues i = 1/`n'{
+		local b : word `i' of `annual_constant'
+		local a : word `i' of `pay_code'
+		replace stan_inc_`c' = `b'*`c' if lower(`d') == "`a'"
+	}
+}
+/*----------------------------------------------------------------*/
 * All yes/no questions - encode responses
 /*----------------------------------------------------------------*/
 use temp, clear
-/*quietly ds, has(type string)
-foreach v in `r(varlist)' {
-	tab `v' if strlower(strtrim(`v')) == "yes" | strlower(strtrim(`v')) == "no"
-}*/
+
 keep uniqueid qid22 qid698 qid79 qid80 qid728 qid91 *qid99* q1734 q1737 q1739 q1741 q1743 qid106 qid107 qid729 qid117 *qid125* q1751 q1754 q1756 q1758 q1760 qid132 qid688 qid135 qid139 qid158 qid730 qid149 *qid157* q756 q1791 q1792 q1815 q1833 q1835 q1850 q1867 q1869 q1870 q1874 q1891 q1797 q1896 q2003
 
 local questions "qid22 qid698 qid79 qid80 qid728 qid91 *qid99* q1734 q1737 q1739 q1741 q1743 qid106 qid107 qid729 qid117 *qid125* q1751 q1754 q1756 q1758 q1760 qid132 qid688 qid135 qid139 qid158 qid730 qid149 *qid157* q756 q1791 q1792 q1815 q1833 q1835 q1850 q1867 q1869 q1870 q1874 q1891 q1797 q1896 q2003"
@@ -457,6 +674,8 @@ replace qid736_1 = "30" if qid736_1 == "25 to 35 hours per week"
 replace qid736_1 = "40" if qid736_1 == "40 or more"
 replace qid736_1 = string((real(substr(qid736_1, 1, 2)) + real(substr(qid736_1, 4, .)))/2) if strpos(qid736_1, "-") > 0
 
+destring qid736_1, replace
+
 ********** Now cleaning qid736_2 and qid736_3 *************
 
 ** Code is Format for method of seperating out month and year ** 
@@ -489,44 +708,17 @@ forvalues x = 2/3 {
 // Replacing obs. that don't have any value for years 
 replace primary_qid736_2_year = "" if primary_qid736_2_year == "arch" | primary_qid736_2_year == "ears" 
 /*----------------------------------------------------------------*/
+ look at *qid15*  
+ 
+ needs to be cleaned q878* qid113_1 qid115* qid738* *qid122_1 *qid124* qid739* q1222 q879*
 
-/*----------------------------------------------------------------*/
-* Income variables for Primary Job - INCOMPLETE
-/*----------------------------------------------------------------*/
-use temp, clear
-quietly keep qid1535_1 qid1536 qid1540 qid1537 qid1539 qid1541
-
-replace qid1535_1 = "prefer" if strpos(qid1535_1, "not") != 0 | strpos(qid1535_1, "to") != 0
-tab qid1535_1
-replace qid1535_1 = "dont" if strpos(lower(qid1535_1), "don't") != 0 | strpos(qid1535_1, "prefer") != 0
-tab qid1535_1
-replace qid1535_1 = "prefer" if strpos(lower(qid1535_1), "x") != 0 | strpos(qid1535_1, "dont") != 0
-replace qid1535_1 = "prefer" if strpos(lower(qid1535_1), "prefer") != 0 | strpos(qid1535_1, "dont") != 0
-replace qid1535_1 = "" if strpos(qid1535_1, "prefer") !=0 | strpos(qid1535_1, "varies")
- preserve
-*Ask about how to delete "plus" and "day" without deleting entire entry
-replace qid1535_1 = subinstr(qid1535_1, ",", "",.)
-replace qid1535_1 = subinstr(qid1535_1, ".", "",.)
-replace qid1535_1 = subinstr(qid1535_1, "$", "",.)
-replace qid1535_1 = subinstr(qid1535_1, "-", "",.)
-*this made the 8-10,000 entry look like 810,000
-replace qid1535_1 = usubinstr(qid1535_1, "0", "", .)
-*deleted the zeroes and I'm not even sure if that looks right
-/*----------------------------------------------------------------*/
-
-/*----------------------------------------------------------------*/
-* Income Variables for SIDE JOB - INCOMPLETE
-/*----------------------------------------------------------------*/
-use temp, clear
-quietly keep qid1560_1 q2_qid1560_1 qid1561 q2_qid156 qid1562 qid1563_1 q2_qid1563_1 qid1564 q2_qid1564
-/*----------------------------------------------------------------*/
-
-
+encode q711 qid636 qid24 qid673 qid681 qid131 qid134 qid140
 
 /*----------------------------------------------------------------*/
 * Clean Questions - seeing what is left to clean
 /*----------------------------------------------------------------*/
-drop q875* qid87* qid83 qid84  qid695 *qid94* qid85_1 *qid96* qid671* q1232* child_birthday qid22 qid698 qid79 qid80 qid728 qid91 *qid99* q1734 q1737 q1739 q1741 q1743 qid106 qid107 qid729 qid117 *qid125* q1751 q1754 q1756 q1758 q1760 qid132 qid688 qid135 qid139 qid158 qid730 qid149 *qid157* q756 q1791 q1792 q1815 q1833 q1835 q1850 q1867 q1869 q1870 q1874 q1891 q1797 q1896 q2003 child_gender other_child1_gender other_child2_gender other_child3_gender *qid97* qid737*
+use temp, clear
+drop startdate enddate status ipaddress progress durationinseconds finished recordeddate responseid recipientemail externalreference locationlatitude locationlongitude distributionchannel userlanguage qid597 q1026 q887 q1228 qid23 qid81* qid82 qid736* qid92 *qid95 q875* qid87* qid83 qid84 q886 q883 qid108* qid109 qid110 qid696 qid111 qid118 *qid120 qid136 qid137 qid138 q885 qid141  *qid121 qid695 *qid94* qid85_1 *qid96* qid671* q1232* child_birthday qid22 qid698 qid79 qid80 qid728 qid91 *qid99* q1734 q1737 q1739 q1741 q1743 qid106 qid107 qid729 qid117 *qid125* q1751 q1754 q1756 q1758 q1760 qid132 qid688 qid135 qid139 qid158 qid730 qid149 *qid157* q756 q1791 q1792 q1815 q1833 q1835 q1850 q1867 q1869 q1870 q1874 q1891 q1797 q1896 q2003 child_gender other_child1_gender other_child2_gender other_child3_gender *qid97* qid737* qid680* qid15* q17*
 /*----------------------------------------------------------------*/
 
 
