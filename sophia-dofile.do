@@ -3,7 +3,7 @@ PROJECT: CHECC Parents Labor Supply
 TOPIC: CLEANING DATASET 
 AUTHOR: Sophia
 DATE CREATED: 30/06/2021
-LAST MODIFIED: 22/07/2021 
+LAST MODIFIED: 26/07/2021 
 
 NOTES: 
 
@@ -231,7 +231,6 @@ forvalues i = 1/12 {
 }
 
 *---* fixing qid671_`i'_5 *---*
-
 * making all responses either unemployed, working, student or blank
 forvalues i = 1/12 {
 	replace qid671_`i'_5 = "unemployed" if strpos(strlower(qid671_`i'_5), "unemploy") != 0 | strpos(strlower(qid671_`i'_5), "leave") != 0 | strpos(strlower(qid671_`i'_5), "home") != 0 | strpos(strlower(qid671_`i'_5), "not work") !=0 | strpos(strlower(qid671_`i'_5), "disabled") !=0 | inlist(strtrim(strlower(qid671_`i'_5)), "furloughed", "retired", "on workman's comp due to injury", "notworking", "umemployed", "uneployed") 
@@ -251,7 +250,6 @@ forvalues i = 1/12 {
 --graduating in spring is specific case (general rule not applied) because most graduations take place in may
 -"until the pandemic" == mar 2020 because "During March 2020, national, state, and local public health responses also intensified and adapted, augmenting case detection, contact tracing, and quarantine with targeted layered community mitigation measures." https://www.cdc.gov/mmwr/volumes/69/wr/mm6918e2.htm
 */
-keep uniqueid qid671_*_2 qid671_*_3 qid671_*_6 qid671_*_7
 
 * fixing specific errors
 quietly replace qid671_1_2 = "aug" if qid671_1_2 == "15-Aug"
@@ -365,7 +363,6 @@ use temp, clear
 quietly keep uniqueid qid680*
 
 *---* fixing qid680_2_* *---*
-
 * creating empty variables to allow for loops (will be dropped after)
 forvalues i = 1/7 {
 gen qid680_`i'_6 = ""
@@ -373,31 +370,26 @@ gen qid680_`i'_6 = ""
 
 * making all responses either part time, full time, or blank
 forvalues i = 1/9 {
-	replace qid680_3_`i' = qid680_2_`i' if inlist(qid680_2_`i', "Drafter", "Project Coordinator")
-	replace qid680_1_`i' = qid680_2_`i' if strpos(qid680_2_`i', "Student") != 0
-	replace qid680_2_`i' = "" if inlist(qid680_2_`i', "Drafter", "Project Coordinator")
+	quietly replace qid680_3_`i' = qid680_2_`i' if inlist(qid680_2_`i', "Drafter", "Project Coordinator")
+	quietly replace qid680_1_`i' = qid680_2_`i' if strpos(qid680_2_`i', "Student") != 0
+	quietly replace qid680_2_`i' = "" if inlist(qid680_2_`i', "Drafter", "Project Coordinator")
 	quietly replace qid680_2_`i' = "full time" if strpos(strlower(qid680_2_`i'), "ful") != 0 | strpos(strlower(qid680_2_`i'), "ft")
 	quietly replace qid680_2_`i' = "part time" if strpos(strlower(qid680_2_`i'), "part") != 0 | strpos(strlower(qid680_2_`i'), "pt") |strpos(strlower(qid680_2_`i'), "pert")
 	quietly replace qid680_2_`i' = "" if qid680_2_`i' != "part time" & qid680_2_`i' != "full time"
-	tab qid680_2_`i'
 }
 
 *---* fixing qid680_1_* *---*
-
 * making all responses either unemployed, working, student or blank
 forvalues i = 1/9 {
 	list qid680_1_`i' qid680_4_`i' qid680_5_`i' qid680_6_`i' qid680_7_`i' if strpos(strtrim(strlower(qid680_1_`i')), "april through dec") != 0
 	replace qid680_3_`i' = strtrim(substr(qid680_1_`i', strpos(qid680_1_`i', "-")+1, .)) + "-" + qid680_3_`i' if strpos(strtrim(strlower(qid680_1_`i')), "assistant professor") != 0
-	//list qid680_3_`i' if strpos(strtrim(strlower(qid680_1_`i')), "assistant professor") != 0
-	//tab qid680_1_`i'
 	replace qid680_1_`i' = "unemployed" if strpos(strlower(qid680_1_`i'), "unemploy") != 0 | strpos(strlower(qid680_1_`i'), "leave") != 0 | strpos(strlower(qid680_1_`i'), "home") != 0 | strpos(strlower(qid680_1_`i'), "not work") !=0 | strpos(strlower(qid680_1_`i'), "disabled") !=0 | inlist(strtrim(strlower(qid680_1_`i')), "furloughed", "layed off", "retired", "umnemployed") 
 	
 	replace qid680_1_`i' = "working" if strpos(strlower(qid680_1_`i'), "work") != 0 | strpos(strlower(qid680_1_`i'), "intern") != 0 | strpos(strlower(qid680_1_`i'), "self employ") != 0 | inlist(strtrim(strlower(qid680_1_`i')), "medical dealer", "truck driver", "employed", "military") 
 	
 	replace qid680_1_`i' = "student" if strpos(strlower(qid680_1_`i'), "student") != 0 | strpos(strlower(qid680_1_`i'), "school") != 0
 	
-	//replace qid671_`i'_5 = "" if !inlist(qid671_`i'_5, "student", "working", "unemployed")
-	tab qid680_1_`i'
+	replace qid680_1_`i' = "" if !inlist(qid680_1_`i', "student", "working", "unemployed")
 }
 *-----* fixing date columns: qid680_4* qid680_5* qid680_6* qid680_7* *-----*
 /*Notes: 
@@ -407,28 +399,21 @@ forvalues i = 1/9 {
 --graduating in spring is specific case (general rule not applied) because most graduations take place in may
 -"until the pandemic" == mar 2020 because "During March 2020, national, state, and local public health responses also intensified and adapted, augmenting case detection, contact tracing, and quarantine with targeted layered community mitigation measures." https://www.cdc.gov/mmwr/volumes/69/wr/mm6918e2.htm
 */
-use temp, clear
-keep uniqueid qid680_4* qid680_5* qid680_6* qid680_7*
 forvalues i = 1/7 {
 gen qid680_`i'_6 = ""
 }
 
 * fixing specific errors
-replace qid680_5_5 = "1989" if qid680_4_5 == "May-89"
-replace qid680_5_1 = "2002" if qid680_5_1 == "2002/2003"
-replace qid680_5_3 = "2011" if qid680_5_3 == "6 months in 2011"
-replace qid680_5_5 = "2010" if qid680_5_5 == "2011/2010"
-replace qid680_7_1 = "2020" if strpos(strtrim(strlower(qid680_6_1)), "pandemic") != 0
-replace qid680_6_1 = "mar" if strpos(strtrim(strlower(qid680_6_1)), "pandemic") != 0
-replace qid680_7_1 = "2019" if strpos(strtrim(strlower(qid680_7_1)), "2019 (worked this job") != 0
-
-//forvalues j = 1/9{
-	//tab1 qid680_4_`j' qid680_5_`j' qid680_6_`j' qid680_7_`j'
-//}
+quietly replace qid680_5_5 = "1989" if qid680_4_5 == "May-89"
+quietly replace qid680_5_1 = "2002" if qid680_5_1 == "2002/2003"
+quietly replace qid680_5_3 = "2011" if qid680_5_3 == "6 months in 2011"
+quietly replace qid680_5_5 = "2010" if qid680_5_5 == "2011/2010"
+quietly replace qid680_7_1 = "2020" if strpos(strtrim(strlower(qid680_6_1)), "pandemic") != 0
+quietly replace qid680_6_1 = "mar" if strpos(strtrim(strlower(qid680_6_1)), "pandemic") != 0
+quietly replace qid680_7_1 = "2019" if strpos(strtrim(strlower(qid680_7_1)), "2019 (worked this job") != 0
 
 * general fixing of dates
 forvalues j = 1/9 {
-	tab1 qid680_4_`j' qid680_5_`j' qid680_6_`j' qid680_7_`j'
 	quietly tostring  qid680_4_`j' qid680_5_`j' qid680_6_`j' qid680_7_`j', replace
 	
 	* making all "present" type responses the same
@@ -485,12 +470,107 @@ forvalues j = 1/9 {
 		quietly replace qid680_`b'_`j' = "" if strlen(qid680_`b'_`j') != 4 & qid680_`b'_`j' != "present"
 		quietly replace qid680_`b'_`j' = "" if missing(real(qid680_`b'_`j')) == 1 & qid680_`b'_`j' != "present" 
 		}
-	tab1 qid680_4_`j' qid680_5_`j' qid680_6_`j' qid680_7_`j'
+}
+/*----------------------------------------------------------------*/
+ 
+/*----------------------------------------------------------------*/
+* qid689* - standardize free responses and dates
+/*----------------------------------------------------------------*/
+use temp, clear
+keep uniqueid qid689*
+
+*---* fixing qid689_*_1 *---*
+* making all responses either part time, full time, or blank
+forvalues i = 1/6 {
+	quietly replace qid689_`i'_1 = "full time" if strpos(strlower(qid689_`i'_1), "full") != 0
+	quietly replace qid689_`i'_1 = "part time" if strpos(strlower(qid689_`i'_1), "part") != 0
+	quietly replace qid689_`i'_1 = "" if qid689_`i'_1 != "part time" & qid689_`i'_1 != "full time"
+}
+
+*---* fixing qid689_`i'_5 *---*
+* making all responses either unemployed, working, student or blank
+forvalues i = 1/6 {
+	quietly replace qid689_`i'_5 = "unemployed" if strpos(strlower(qid689_`i'_5), "unemploy") != 0 | strpos(strlower(qid689_`i'_5), "home") != 0 | strpos(strlower(qid689_`i'_5), "not work") !=0 | strpos(strlower(qid689_`i'_5), "disab") !=0 | inlist(strtrim(strlower(qid689_`i'_5)), "incarcerated", "jail") 
+	
+	quietly replace qid689_`i'_5 = "working" if strpos(strlower(qid689_`i'_5), "work") != 0 | inlist(strtrim(strlower(qid689_`i'_5)), "ford motor company", "employed")
+	
+	quietly replace qid689_`i'_5 = "student" if strpos(strlower(qid689_`i'_5), "student") != 0
+	
+	quietly replace qid689_`i'_5 = "" if !inlist(qid689_`i'_5, "student", "working", "unemployed")
+}
+*-----*fixing date columns: qid689_*_2 qid689_*_6 qid689_*_3 qid689_*_7*-----*
+/*Notes: 
+-x or y options were rounded down
+-for range of months chose average, rounded down
+-seasons were transfered to a month range based on meteorological seasons {spring: mar-may summer: jun-aug fall: sep-nov winter: dec-feb} and then the above rule applied so spring=apr summer=jul fall=oct winter=jan
+--graduating in spring is specific case (general rule not applied) because most graduations take place in may
+-"until the pandemic" == mar 2020 because "During March 2020, national, state, and local public health responses also intensified and adapted, augmenting case detection, contact tracing, and quarantine with targeted layered community mitigation measures." https://www.cdc.gov/mmwr/volumes/69/wr/mm6918e2.htm
+*/
+
+* fixing specific errors
+quietly replace qid689_2_6 = "2010" if strlower(strtrim(qid689_2_6)) == "prior to 2010"
+quietly replace qid689_1_3 = "2014" if strpos(strlower(strtrim(qid689_1_3)), "deceased in 2014") != 0
+	
+* general fixing of dates
+forvalues j = 1/6 {
+	quietly tostring qid689_`j'_2 qid689_`j'_6 qid689_`j'_3 qid689_`j'_7, replace
+	
+	* making all "present" type responses the same
+	quietly replace qid689_`j'_3 = strlower(qid689_`j'_3)
+	quietly replace qid689_`j'_3 = "present" if strpos(strlower(qid689_`j'_3), "current") != 0 | strpos(strlower(qid689_`j'_3), "still") != 0 | strpos(strlower(qid689_`j'_3), "present") != 0 | strpos(strlower(qid689_`j'_3), "continu") != 0 | strpos(strlower(qid689_`j'_3), "there") != 0 
+	quietly replace qid689_`j'_7 = qid689_`j'_3 if qid689_`j'_3 == "present"
+	quietly replace qid689_`j'_7 = "present" if strpos(strlower(qid689_`j'_7), "current") != 0 | strpos(strlower(qid689_`j'_7), "still") != 0 | strpos(strlower(qid689_`j'_7), "present") != 0 | strpos(strlower(qid689_`j'_7), "continu") != 0 | strpos(strlower(qid689_`j'_7), "there") != 0
+	quietly replace qid689_`j'_3 = qid689_`j'_7 if qid689_`j'_7 == "present"
+	
+	* fixing month year entry swaps 
+	local mon "2 3"
+	local year "6 7"
+	local n : word count `mon'
+
+	forvalues l = 1/`n' {
+		local a : word `l' of `mon'
+		local b : word `l' of `year'
+		
+		quietly gen tempq = qid689_`j'_`a' if strlen(qid689_`j'_`a') == 4 & missing(real(qid689_`j'_`a')) == 0 
+		quietly replace qid689_`j'_`a' = qid689_`j'_`b' if strlen(qid689_`j'_`a') == 4 & missing(real(qid689_`j'_`a')) == 0 
+		quietly replace qid689_`j'_`b' = tempq if missing(tempq) == 0
+		drop tempq
+	}
+	
+	forvalues k = 2/3 {
+	* making all month entries in same format
+		quietly gen pres = qid689_`j'_`k' if qid689_`j'_`k' == "present"
+		quietly gen month = strlower(substr(qid689_`j'_`k',1,3)) //creating new variable with just first 3 characters of response
+
+		quietly replace month = usubinstr(month, "0", "", 1) if month != "10" | month != "11"| month != "12"
+
+		local month_code = "jan feb mar apr may jun jul aug sep oct nov dec"
+		local n : word count `month_code'
+
+			* replace month with empty if input is invalid
+			* replace 1-12 with month values
+		quietly gen tempq = ""
+		forvalues i = 1/`n' {
+			local a : word `i' of `month_code'
+			quietly replace month = "`a'" if month == "`i'"
+			quietly replace tempq = "`a'" if month == "`a'"
+		}
+		quietly replace month = tempq
+		quietly replace qid689_`j'_`k' = month
+		quietly replace qid689_`j'_`k' = pres if missing(pres) == 0
+		drop tempq month pres
+	}
+	
+	* getting rid of responses that aren't years or present
+	forvalues k = 6/7 {
+		quietly replace qid689_`j'_`k' = "" if strlen(qid689_`j'_`k') != 4 & qid689_`j'_`k' != "present"
+		quietly replace qid689_`j'_`k' = "" if missing(real(qid689_`j'_`k')) == 1 & qid689_`j'_`k' != "present" 
+		}
 }
 /*----------------------------------------------------------------*/
 
 /*----------------------------------------------------------------*/
-* All 1-3 response options questions - encode responses
+* All short multiple-choice type questions - encode responses
 /*----------------------------------------------------------------*/
 use temp, clear
 /*quietly ds, has(type string)
@@ -659,7 +739,7 @@ destring qid737_1, replace
 /*----------------------------------------------------------------*/
 
 /*----------------------------------------------------------------*/
-*qid736*- INCOMPLETE
+*qid736*- 
 /*----------------------------------------------------------------*/
 /*NOTES:
 Question: How many hours per week used to be the job? Additionally, what are the start and end years for when you worked this number of hours per week?
