@@ -8,8 +8,37 @@ LAST MODIFIED: 19/07/2021
 NOTES: 
 need month_key.csv file for experimenting section
 ------------------------------------------------------------------------------*/
+/*Notes
+use temp, clear
+	drop other_child*_birthday q1024 q1230 q1879 q1825_1 q1821 qid740_1 q2_qid122_1 q2_qid124_2 q2_qid124_1 qid124_1 qid739_2 qid739_3 q1824 q1823 q1822 q1827 q1826 q1832* q1826 q1863 q1868 q1871 q1875 q1880 q1881 q1882 q1883_1 q1884_1 q1888 q1871_7_text q1890_1 q1890_2 q1892_1 q1893  qid134_11_text qid140_7_text q756_1_text  
+	
+Money variables:
+ q1222
+ 
+Hours of work
+qid113_1 qid115* qid738_1 qid122_1
+Dates (Check for each question) 
+q878_1 q878_2 qid738_2 qid738_3 q879* qid147_2 qid740_2  qid740_3
 
-						*--------* BASIC SETUP *-------*
+These are not very important: 
+D/M/Years
+q1872 
+q1873 
+
+Big 
+q1862* q1233*
+		
+Question q878_2
+
+*/
+
+replace qid124_1 = 7 if qid124_1 == 2020
+replace qid124_2 = "" if qid124_2 == "December"
+destring qid124_2, replace
+replace qid145_1 == "40" if qid145_1 == "40+" | qid145_1 == "40?"
+replace qid147_1 == "don't know'" if qid147_1 == "?"
+
+				*--------* BASIC SETUP *-------*
 /*----------------------------------------------------------------------------*/
 
 clear all 
@@ -316,72 +345,89 @@ replace qid736_1 = "40" if qid736_1 == "40 or more"
 replace qid736_1 = string((real(substr(qid736_1, 1, 2)) + real(substr(qid736_1, 4, .)))/2) if strpos(qid736_1, "-") > 0
 destring qid736_1, replace
 
+///Cleaning qid113_1 For Primary Job hours worked for Guardian//
+
+replace qid113_1 = "" if qid113_1 == "16-Aug" | qid113_1 == "8-Apr"
+replace qid113_1 = "40" if qid113_1 == "40+" 
+replace qid113_1 = "30" if qid113_1 == "30+" 
+replace qid113_1 = string((real(substr(qid113_1, 1, 2)) + real(substr(qid113_1, 4, .)))/2) if strpos(qid113_1, "-") > 0
+// Will take the mean of two numbers if there is a dash in between them 
+
+///// Cleaning qid115* /////
+replace qid115_3 = "" if qid115_3 == "January" | if qid115_3 == "March"
+replace qid115_3 = "8" if qid115_3 == "May"
+replace qid115_4 = "" if qid115_4 == "10-Sep" 
+replace qid115_4 = "10" if qid115_4 == "10+" 
+replace qid115_4 = "20" if qid115_4 == "20+" 
+replace qid115_4 = "35" if qid115_4 == "35 years"
+replace qid115_4 = string(2021 - real(qid115_4)) if strlen(qid115_4) == 4 
+
+*********Cleaning qid736* and qid738* ///***************/ 
+
+/* Note: _2 is start month, year of hours per week of primary job, 
+_3 is end month, year */
+
+use temp, clear
+quietly keep uniqueid qid736* qid738*
+
+replace qid736_1 = "" if qid736_1 == "Seasonal" | qid736_1 == "hours vary every week" 
+replace qid736_1 = "30" if qid736_1 == "25 to 35 hours per week"
+replace qid736_1 = "40" if qid736_1 == "40 or more"
+replace qid736_1 = string((real(substr(qid736_1, 1, 2)) + real(substr(qid736_1, 4, .)))/2) if strpos(qid736_1, "-") > 0
+destring qid736_1, replace
+
+replace qid738_1 = "38" if qid738_1 == "36-40"
+
 /******************** Now cleaning qid736_2 and qid736_3 *******************/
 	
 ** Code is Format for method of seperating out month and year ** 
-// Replacing a typing error //
+// Replacing typing errors and ambiguous observations //
 replace qid736_2 = "11, 2020" if qid736_2 == "112,020"
 replace qid736_3 = "1, 2021" if qid736_3 == "12,021"
 
-// Replacing months with numbers with 3-letter abbreviation and extracting year for each observation for both qid736_2 and qid736_3 // 
-forvalues x = 2/3 {
-	// Starting/Ending Month and year of previous hours at primary job 
-	gen primary_qid736_`x'_month = strlower(substr(qid736_`x',1,3))
-	gen primary_qid736_`x'_year = usubinstr(qid736_`x', "-", "20", 1)
-	quietly replace primary_qid736_`x'_year = substr(primary_qid736_`x'_year,-4,.)
+replace qid738_2 = "" if qid738_2 == "Seasonal, winter months are 40 hours per week"
+replace qid738_2 = "varies" if qid738_2 == "his job varies a bit, 40-60 hours a week,"
+replace qid738_2 = "01, 2019" if qid738_2 == "winter 2019 (when he started working)"
+replace qid738_2 = "10, 2013" if qid736_2 == "102,013"
+replace qid738_2 = "01, 2005" if qid738_2 == "12,005"
+replace qid738_3 = "March 2020" if qid738_3 == "March 2020 (with COVID)"
+replace qid738_3 = "3, 2020" if qid738_3 ==  "32,020"
 	
-	// removing prepended zeros in month 
-	quietly replace primary_qid736_`x'_month = usubinstr(primary_qid736_`x'_month, "0", "", 1) if primary_qid736_`x'_month != "10" | primary_qid736_`x'_month != "11"| primary_qid736_`x'_month != "12" 
-	// Now obtaining the 3-letter abbreviation for months that have numbers
-	local month_code = "jan feb mar apr may jun jul aug sep oct nov dec"
-	quietly gen temp`x'= ""
-	forvalues i = 1/12 {
-		local a : word `i' of `month_code'
-			quietly replace primary_qid736_`x'_month= "`a'" if primary_qid736_`x'_month == "`i',"
-			quietly replace temp = "`a'" if primary_qid736_`x'_month == "`a'"
-			
-		}
-		quietly replace primary_qid736_`x'_month = temp`x'
-		drop temp`x' 
+		
+// Replacing months with numbers with 3-letter abbreviation and extracting year for each observation for both qid736_2 and qid736_3 // 
+local num "6 8"
+	local n : word count `num'
 
+forvalues l = 1/`n' {
+	local z : word `l' of `num'
+	forvalues x = 2/3 {
+		// Starting/Ending Month and year of previous hours at primary job 
+		gen primary_qid73`z'_`x'_month = strlower(substr(qid73`z'_`x',1,3))
+		gen primary_qid73`z'_`x'_year = usubinstr(qid73`z'_`x', "-", "20", 1)
+		quietly replace primary_qid73`z'_`x'_year = substr(primary_qid73`z'_`x'_year,-4,.)
+	
+		// removing prepended zeros in month 
+		quietly replace primary_qid73`z'_`x'_month = usubinstr(primary_qid73`z'_`x'_month, "0", "", 1) if primary_qid73`z'_`x'_month != "10" | primary_qid73`z'_`x'_month != "11"| primary_qid73`z'_`x'_month != "12" 
+		// Now obtaining the 3-letter abbreviation for months that have numbers
+		local month_code = "jan feb mar apr may jun jul aug sep oct nov dec"
+		quietly gen temp`x'= ""
+		forvalues i = 1/12 {
+			local a : word `i' of `month_code'
+				quietly replace primary_qid73`z'_`x'_month= "`a'" if primary_qid73`z'_`x'_month == "`i',"
+				quietly replace temp = "`a'" if primary_qid73`z'_`x'_month == "`a'"
+			
+			}
+			quietly replace primary_qid73`z'_`x'_month = temp`x'
+			drop temp`x' 
+
+	}
 }
 // Replacing obs. that don't have any value for years 
 replace primary_qid736_2_year = "" if primary_qid736_2_year == "arch" | primary_qid736_2_year == "ears" 
+replace primary_qid738_2_year = "" if primary_qid738_2_year == "mber" | primary_qid738_2_year == "ries" | primary_qid738_2_year == "know" 
+replace primary_qid738_3_year = "" if primary_qid738_3_year == "mber" | primary_qid738_3_year == "ries" | primary_qid738_3_year == "ness"  
 
 ****************************************************/
-
-***************** CLEANING Income variables for Primary Job *************/
-
-use temp, clear
-quietly keep qid1535_1 qid1536 qid1540 qid1537 qid1539 qid1541
-
-
-
-
-
-
-
-replace qid1535_1 = "prefer" if strpos(qid1535_1, "not") != 0 | strpos(qid1535_1, "to") != 0
-tab qid1535_1
-replace qid1535_1 = "dont" if strpos(lower(qid1535_1), "don't") != 0 | strpos(qid1535_1, "prefer") != 0
-tab qid1535_1
-replace qid1535_1 = "prefer" if strpos(lower(qid1535_1), "x") != 0 | strpos(qid1535_1, "dont") != 0
-replace qid1535_1 = "prefer" if strpos(lower(qid1535_1), "prefer") != 0 | strpos(qid1535_1, "dont") != 0
-replace qid1535_1 = "" if strpos(qid1535_1, "prefer") !=0 | strpos(qid1535_1, "varies")
- preserve
-*Ask about how to delete "plus" and "day" without deleting entire entry
-replace qid1535_1 = subinstr(qid1535_1, ",", "",.)
-replace qid1535_1 = subinstr(qid1535_1, ".", "",.)
-replace qid1535_1 = subinstr(qid1535_1, "$", "",.)
-replace qid1535_1 = subinstr(qid1535_1, "-", "",.)
-*this made the 8-10,000 entry look like 810,000
-replace qid1535_1 = usubinstr(qid1535_1, "0", "", .)
-*deleted the zeroes and I'm not even sure if that looks right
-
-
-*********CLEANING Income Variables for SIDE JOB  ****************/
-use temp, clear
-quietly keep qid1560_1 q2_qid1560_1 qid1561 q2_qid156 qid1562 qid1563_1 q2_qid1563_1 qid1564 q2_qid1564
 
 
 ****cleaning q1232***********************************
