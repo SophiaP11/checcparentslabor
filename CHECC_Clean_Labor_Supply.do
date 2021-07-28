@@ -32,11 +32,7 @@ Question q878_2
 
 */
 
-replace qid124_1 = 7 if qid124_1 == 2020
-replace qid124_2 = "" if qid124_2 == "December"
-destring qid124_2, replace
-replace qid145_1 == "40" if qid145_1 == "40+" | qid145_1 == "40?"
-replace qid147_1 == "don't know'" if qid147_1 == "?"
+
 
 				*--------* BASIC SETUP *-------*
 /*----------------------------------------------------------------------------*/
@@ -288,30 +284,12 @@ rename birthday child_birthday
 rename q2_qid96_1 qid96_2 //clean already
 ***************
 
-/******LIST OF QUESTIONS THAT NEED CLEANING*****
-use temp, clear
-
-MONEY/HOURS VALUES:
-	qid1535_1 qid85_1 qid736_1 qid1560_1 qid737_1 qid96_1 q2_qid96_1 qid737_1
-
-DATES:
-	***number of months/years* 
-keep uniqueid q875_1 q875_5 qid87_1 qid87_2 qid97_1 qid97_2 q2_qid97_2
-	***start-end month/year* 
-		qid736_2 qid736_3 
-	***dd/mm
-keep uniqueid q1738_1 q1738_2 q1740_1 q1740_2 q1742_1 q1742_2
-
-FREE RESPONSE:
-	qid671_*_5 qid671_*_1
-	
-OTHER:
-	qid92 (if missing check if qid91 =="no", if so change to 0)
-	q1736 depends on q1735 and q886 (q1736* are dates)
-***CHECKED QUESTIONS UP TO AND INCLUDING q1743
-	**only checked questions with more than one obs. (569 variables)
- 
-****************************************************/
+**************Replacing specific variables **************************************/
+replace qid124_1 = 7 if qid124_1 == 2020
+replace qid124_2 = "" if qid124_2 == "December"
+destring qid124_2, replace
+replace qid145_1 == "40" if qid145_1 == "40+" | qid145_1 == "40?"
+replace qid147_1 == "don't know'" if qid147_1 == "?"
 
 
 ***********CLEANING qid97* //////**************
@@ -331,13 +309,7 @@ replace qid737_1 = "50" if qid737_1 == "40-60"
 
 destring qid737_1, replace 
 
-*********Cleaning qid736_1 qid736_2 and qid736_3 ***STILL WORKING ON IT*********/ 
-
-/* Note: _2 is start month, year of hours per week of primary job, 
-_3 is end month, year */
-
-use temp, clear
-quietly keep uniqueid qid736*
+*********Cleaning qid736 **************
 
 replace qid736_1 = "" if qid736_1 == "Seasonal" | qid736_1 == "hours vary every week" 
 replace qid736_1 = "30" if qid736_1 == "25 to 35 hours per week"
@@ -345,7 +317,7 @@ replace qid736_1 = "40" if qid736_1 == "40 or more"
 replace qid736_1 = string((real(substr(qid736_1, 1, 2)) + real(substr(qid736_1, 4, .)))/2) if strpos(qid736_1, "-") > 0
 destring qid736_1, replace
 
-///Cleaning qid113_1 For Primary Job hours worked for Guardian//
+************** Cleaning qid113_1 For Primary Job hours worked for Guardian *******************
 
 replace qid113_1 = "" if qid113_1 == "16-Aug" | qid113_1 == "8-Apr"
 replace qid113_1 = "40" if qid113_1 == "40+" 
@@ -353,7 +325,7 @@ replace qid113_1 = "30" if qid113_1 == "30+"
 replace qid113_1 = string((real(substr(qid113_1, 1, 2)) + real(substr(qid113_1, 4, .)))/2) if strpos(qid113_1, "-") > 0
 // Will take the mean of two numbers if there is a dash in between them 
 
-///// Cleaning qid115* /////
+**************** Cleaning qid115* *********************
 replace qid115_3 = "" if qid115_3 == "January" | if qid115_3 == "March"
 replace qid115_3 = "8" if qid115_3 == "May"
 replace qid115_4 = "" if qid115_4 == "10-Sep" 
@@ -362,13 +334,15 @@ replace qid115_4 = "20" if qid115_4 == "20+"
 replace qid115_4 = "35" if qid115_4 == "35 years"
 replace qid115_4 = string(2021 - real(qid115_4)) if strlen(qid115_4) == 4 
 
+********************* Cleaning qid122_1 - Hours worked per week for side job *********
+replace qid122_1 = "" if qid122_1 == "one month a year" | qid122_1 == "12-Oct" | qid122_1 == "5-Apr" | qid122_1 == "not sure"
+replace qid122_1 = "" if qid122_1 == strpos(strlower(strtrim(qid122_1)), "one month a year") !=0
+destring qid122_1, replace
+
 *********Cleaning qid736* and qid738* ///***************/ 
 
 /* Note: _2 is start month, year of hours per week of primary job, 
 _3 is end month, year */
-
-use temp, clear
-quietly keep uniqueid qid736* qid738*
 
 replace qid736_1 = "" if qid736_1 == "Seasonal" | qid736_1 == "hours vary every week" 
 replace qid736_1 = "30" if qid736_1 == "25 to 35 hours per week"
@@ -453,7 +427,7 @@ use temp, clear
 
 quietly ds , has(type string)
 foreach var in `r(varlist)' {
-replace `var' = "" if `var'== "Don't know" | `var' == "don't know" | `var' == "prefer not to answer" | `var' == "Prefer not to answer" | `var' == "don't remember" | `var' == "n/a" | `var' == "no comments" | `var' == "doesn't know" | `var' == "not sure" | `var' == "dont know" | `var' == "unsure" | `var' == "Doesn't know" | `var' == "doesn't know" | `var' == "can't remember" | `var' ==  "does not want to answer" | `var' == "don't want to answer" | `var' == "N/A"
+replace `var' = "don't know'" if `var'== "Don't know" | `var' == "prefer not to answer" | `var' == "Prefer not to answer" | `var' == "don't remember" | `var' == "n/a" | `var' == "no comments" | `var' == "doesn't know" | `var' == "not sure" | `var' == "dont know" | `var' == "unsure" | `var' == "Doesn't know" | `var' == "doesn't know" | `var' == "can't remember" | `var' ==  "does not want to answer" | `var' == "don't want to answer" | `var' == "N/A"
 }
 
 quietly nmissing, min(_all) piasm trim " "
